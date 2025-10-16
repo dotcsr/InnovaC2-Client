@@ -8,37 +8,9 @@ import sys
 import time
 import base64
 import io
-import os
-import requests
 from datetime import datetime
 
 import websockets
-
-def check_for_update(repo_url, local_file):
-    """
-    Verifica si hay una versión más reciente del cliente y la descarga automáticamente.
-    repo_url: URL directa al archivo más reciente (por ejemplo en GitHub Raw)
-    local_file: ruta al archivo actual (este script)
-    """
-    try:
-        response = requests.get(repo_url, timeout=10)
-        if response.status_code == 200:
-            remote_code = response.text
-            with open(local_file, "r", encoding="utf-8") as f:
-                local_code = f.read()
-
-            if remote_code.strip() != local_code.strip():
-                print("[UPDATE] Nueva versión disponible. Actualizando cliente...")
-                backup = local_file + ".bak"
-                os.rename(local_file, backup)
-                with open(local_file, "w", encoding="utf-8") as f:
-                    f.write(remote_code)
-                print("[UPDATE] Cliente actualizado. Reiniciando...")
-                os.execv(sys.executable, ['python'] + sys.argv)
-        else:
-            print("[UPDATE] No se pudo verificar actualizaciones (HTTP {})".format(response.status_code))
-    except Exception as e:
-        print("[UPDATE] Error verificando actualizaciones:", e)
 
 # screen capture
 try:
@@ -48,16 +20,16 @@ except Exception:
     mss = None
     Image = None
 
-# === NUEVO: ventana bonita para mensajes ===
 async def show_message_text(msg):
     """
-    Muestra un mensaje en una ventana sin bordes, moderna y centrada,
+    Muestra un mensaje en una ventana sin bordes, moderna y centrada en la pantalla principal,
     con título, ícono y botón Aceptar.
     Si no hay entorno gráfico, usa notify-send o print.
     """
     try:
         import tkinter as tk
         import threading
+        from screeninfo import get_monitors
 
         def _show():
             root = tk.Tk()
@@ -77,7 +49,7 @@ async def show_message_text(msg):
             icon_label = tk.Label(
                 header_frame,
                 text="📩",
-                font=("Segoe UI Emoji", 28),
+                font=("Noto Color Emoji", 25),
                 bg="#1E1E1E",
                 fg="#EAEAEA"
             )
@@ -103,7 +75,7 @@ async def show_message_text(msg):
                 justify="center",
                 wraplength=420
             )
-            msg_label.pack(pady=(0, 30))  # margen inferior amplio antes del botón
+            msg_label.pack(pady=(0, 30))
 
             # ======= Botón Aceptar =======
             def close():
@@ -132,16 +104,28 @@ async def show_message_text(msg):
             except:
                 pass
 
-            # Centrar ventana
+            # ===== Centrar en pantalla principal (usando screeninfo) =====
             root.update_idletasks()
             width = root.winfo_reqwidth()
             height = root.winfo_reqheight()
-            screen_w = root.winfo_screenwidth()
-            screen_h = root.winfo_screenheight()
-            x = (screen_w // 2) - (width // 2)
-            y = (screen_h // 2) - (height // 2)
-            root.geometry(f"+{x}+{y}")
 
+            try:
+                monitor = get_monitors()[0]  # Pantalla principal
+                screen_x = monitor.x
+                screen_y = monitor.y
+                screen_w = monitor.width
+                screen_h = monitor.height
+
+                x = screen_x + (screen_w // 2) - (width // 2)
+                y = screen_y + (screen_h // 2) - (height // 2)
+            except Exception as e:
+                # Fallback si no se puede obtener info de pantalla
+                screen_w = root.winfo_screenwidth()
+                screen_h = root.winfo_screenheight()
+                x = (screen_w // 2) - (width // 2)
+                y = (screen_h // 2) - (height // 2)
+
+            root.geometry(f"+{x}+{y}")
             root.mainloop()
 
         # Ejecutar en hilo para no bloquear asyncio
@@ -153,6 +137,7 @@ async def show_message_text(msg):
             subprocess.run(["notify-send", "Mensaje remoto", msg])
         except Exception:
             print(f"[MESSAGE] {msg}")
+
 
 async def execute_command(cmd):
     try:
@@ -291,11 +276,6 @@ def main():
     parser.add_argument("--name", default="", help="Friendly name")
     args = parser.parse_args()
     try:
-        # === AUTOUPDATE ===
-        check_for_update(
-            repo_url="https://raw.githubusercontent.com/tu_usuario/tu_repo/main/cliente.py",
-            local_file=os.path.abspath(__file__)
-        )
         asyncio.run(run_agent(args.server, args.id, args.name))
     except KeyboardInterrupt:
         print("Client interrupted by user, exiting.")
