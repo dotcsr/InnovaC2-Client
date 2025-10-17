@@ -271,12 +271,22 @@ async def run_agent(uri, client_id, name):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--server", required=True, help="WebSocket server URL e.g. ws://server:9000/ws/client")
+    parser.add_argument("--ip", required=True, help="IP address of the WebSocket server, e.g. 192.168.1.10")
+    parser.add_argument("--port", required=False, type=int, default=9000, help="Port of the WebSocket server (default: 9000)")
     parser.add_argument("--id", required=True, help="Unique client id")
     parser.add_argument("--name", default="", help="Friendly name")
     args = parser.parse_args()
+
+    # Validate port range
+    if not (1 <= args.port <= 65535):
+        print("Error: --port must be between 1 and 65535")
+        sys.exit(1)
+
+    # Construir la URL WebSocket (usa ws por defecto)
+    server_uri = f"ws://{args.ip}:{args.port}/ws/client"
+
     try:
-        asyncio.run(run_agent(args.server, args.id, args.name))
+        asyncio.run(run_agent(server_uri, args.id, args.name))
     except KeyboardInterrupt:
         print("Client interrupted by user, exiting.")
     except Exception as e:
