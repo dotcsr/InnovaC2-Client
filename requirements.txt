@@ -7,3 +7,4 @@ requests==2.32.5
 pillow==11.1.0
 mss==10.1.0
 websockets==15.0.1
+screeninfo
