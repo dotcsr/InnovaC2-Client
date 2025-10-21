@@ -114,12 +114,21 @@ install_innova() {
 
   echo "Creando entorno virtual..."
   sudo -u "$SYSTEM_USER" "$PYTHON_BIN" -m venv "$INSTALL_DIR/venv"
-  sudo setcap 'cap_net_bind_service=+ep' $INSTALL_DIR/venv/bin/python3
 
-  if [[ ! -x "$INSTALL_DIR/venv/bin/python" ]]; then
-    echo -e "${RED}❌ Falló la creación del entorno virtual.${NC}"
-    exit 1
+  # --- Habilitar uso de puerto 80 / 443 ---
+  echo "Verificando setcap..."
+  if ! command -v setcap >/dev/null 2>&1; then
+    echo "Instalando libcap2-bin (necesario para setcap)..."
+    apt-get update -y
+    apt-get install -y libcap2-bin
   fi
+
+  echo "Otorgando permisos CAP_NET_BIND_SERVICE al intérprete Python del venv..."
+  sudo setcap 'cap_net_bind_service=+ep' "$INSTALL_DIR/venv/bin/python3" || {
+    echo -e "${RED}❌ Error al aplicar setcap. No se podrá usar el puerto 80 sin root.${NC}"
+    exit 1
+  }
+  # --- Fin setcap ---
 
   echo "Actualizando pip e instalando dependencias..."
   sudo -u "$SYSTEM_USER" "$INSTALL_DIR/venv/bin/python" -m pip install --upgrade pip
