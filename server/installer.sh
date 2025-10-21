@@ -114,6 +114,7 @@ install_innova() {
 
   echo "Creando entorno virtual..."
   sudo -u "$SYSTEM_USER" "$PYTHON_BIN" -m venv "$INSTALL_DIR/venv"
+  sudo setcap 'cap_net_bind_service=+ep' $INSTALL_DIR/venv/bin/python3
 
   if [[ ! -x "$INSTALL_DIR/venv/bin/python" ]]; then
     echo -e "${RED}❌ Falló la creación del entorno virtual.${NC}"
@@ -163,7 +164,7 @@ EOF
   echo "Usuario: $SYSTEM_USER"
   systemctl status --no-pager "$SERVICE_NAME" || true
 }
-sudo setcap 'cap_net_bind_service=+ep' $INSTALL_DIR/venv/bin/python3
+
 # ==============================================================
 #  Función: DESINSTALAR
 # ==============================================================
