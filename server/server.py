@@ -171,18 +171,50 @@ class ExecReq(BaseModel):
 # -----------------------
 # Default users
 # -----------------------
+# Asegúrate de que tu pwd_context esté configurado así:
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
+
+def hash_password(password: str):
+    # Si ya es un hash bcrypt, no lo re-hasheamos
+    if password.startswith("$2a$") or password.startswith("$2b$") or password.startswith("$2y$"):
+        return password
+
+    # Truncamiento seguro a 72 bytes (límite de bcrypt)
+    raw = password.encode("utf-8")
+    if len(raw) > 72:
+        raw = raw[:72]
+        password = raw.decode("utf-8", errors="ignore")
+
+    return pwd_context.hash(password)
+
+
 def ensure_default_users():
     db = SessionLocal()
     try:
         if db.query(User).count() == 0:
-            admin = User(username="admin", password_hash=hash_password("admin"), role="systems")
-            director = User(username="director", password_hash=hash_password("director_password"), role="director")
-            db.add(admin); db.add(director); db.commit()
+            admin = User(
+                username="admin",
+                password_hash=hash_password("admin"),
+                role="systems"
+            )
+            director = User(
+                username="director",
+                password_hash=hash_password("director_password"),
+                role="director"
+            )
+            db.add(admin)
+            db.add(director)
+            db.commit()
             logger.info("Usuarios creados: admin/admin, director/director_password")
     finally:
         db.close()
 
+
 ensure_default_users()
+
 
 # -----------------------
 # Auth & User CRUD
