@@ -136,14 +136,16 @@ After=network.target
 
 [Service]
 Type=simple
-User=$SYSTEM_USER
-WorkingDirectory=$INSTALL_DIR/server
-ExecStart=$INSTALL_DIR/venv/bin/python $INSTALL_DIR/server/server.py
+User=%i  # ya está: $SYSTEM_USER en tu script original
+WorkingDirectory=/opt/innovaC2-server/server
+ExecStart=/opt/innovaC2-server/venv/bin/python /opt/innovaC2-server/server/server.py
 Restart=always
 RestartSec=5
 StandardOutput=append:/var/log/innovaC2-server.log
 StandardError=append:/var/log/innovaC2-server.log
-Environment=PATH=$INSTALL_DIR/venv/bin:/usr/bin:/bin
+Environment=PATH=/opt/innovaC2-server/venv/bin:/usr/bin:/bin
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 
 [Install]
 WantedBy=multi-user.target
