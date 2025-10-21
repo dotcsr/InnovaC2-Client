@@ -144,8 +144,9 @@ RestartSec=5
 StandardOutput=append:/var/log/innovaC2-server.log
 StandardError=append:/var/log/innovaC2-server.log
 Environment=PATH=/opt/innovaC2-server/venv/bin:/usr/bin:/bin
-AmbientCapabilities=CAP_NET_BIND_SERVICE
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE CAP_SETUID CAP_SETGID
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE CAP_SETUID CAP_SETGID
+NoNewPrivileges=true
 
 [Install]
 WantedBy=multi-user.target
