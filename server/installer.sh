@@ -136,14 +136,14 @@ After=network.target
 
 [Service]
 Type=simple
-User=%i  # ya está: $SYSTEM_USER en tu script original
-WorkingDirectory=/opt/innovaC2-server/server
-ExecStart=/opt/innovaC2-server/venv/bin/python /opt/innovaC2-server/server/server.py
+User=$SYSTEM_USER
+WorkingDirectory=$INSTALL_DIR/server
+ExecStart=$INSTALL_DIR/venv/bin/python3 $INSTALL_DIR/server/server.py
 Restart=always
 RestartSec=5
 StandardOutput=append:/var/log/innovaC2-server.log
 StandardError=append:/var/log/innovaC2-server.log
-Environment=PATH=/opt/innovaC2-server/venv/bin:/usr/bin:/bin
+Environment=PATH=$INSTALL_DIR/venv/bin:/usr/bin:/bin
 
 [Install]
 WantedBy=multi-user.target
@@ -163,7 +163,7 @@ EOF
   echo "Usuario: $SYSTEM_USER"
   systemctl status --no-pager "$SERVICE_NAME" || true
 }
-
+sudo setcap 'cap_net_bind_service=+ep' $INSTALL_DIR/venv/bin/python3
 # ==============================================================
 #  Función: DESINSTALAR
 # ==============================================================
