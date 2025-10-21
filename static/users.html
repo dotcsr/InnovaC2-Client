@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gestión de Usuarios — RemoteManager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f8fafc;--surface:#ffffff;--muted:#6b7280;--accent:#2563eb;--accent-2:#06b6d4;
+      --ok:#10b981;--warn:#f59e0b;--danger:#ef4444;--radius:12px;--gap:16px;--card-shadow:0 8px 24px rgba(15,23,42,0.06)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Inter',system-ui,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:#0f1724;padding:24px;display:flex;align-items:flex-start;justify-content:center}
+    .wrap{width:100%;max-width:1100px}
+    .card{background:var(--surface);border-radius:12px;padding:18px;box-shadow:var(--card-shadow);border:1px solid rgba(15,23,42,0.04)}
+    header.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap}
+    .titleArea{display:flex;flex-direction:column}
+    h2{margin:0;font-size:18px}
+    .small{font-size:13px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:700px){.grid{grid-template-columns:1fr 320px}}
+    input,select,button,textarea{padding:10px 12px;border-radius:10px;border:1px solid rgba(15,23,42,0.06);font-size:14px;background:transparent}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
+    .muted{color:var(--muted);font-size:13px}
+    .row-actions{display:flex;gap:8px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 12px;border-radius:10px;border:0;cursor:pointer;font-weight:600}
+    .btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white}
+    .btn-ghost{background:transparent;border:1px solid rgba(15,23,42,0.06);color:var(--muted)}
+    .smallBtn{font-size:13px;padding:6px 8px;border-radius:8px}
+    #msg{margin-top:12px;color:var(--muted)}
+    /* responsive tweaks */
+    @media(max-width:480px){body{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <header class="top">
+        <div class="titleArea">
+          <h2>Gestión de Usuarios</h2>
+          <div class="small">Administra cuentas (requiere rol <strong>systems</strong>)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button id="backBtn" class="btn btn-ghost smallBtn" onclick="window.location.href='/'">Volver</button>
+          <button id="logoutBtn" class="btn btn-ghost smallBtn" onclick="logout()">Cerrar sesión</button>
+        </div>
+      </header>
+
+      <div class="grid">
+        <section>
+          <h3 style="margin-top:0">Lista de usuarios</h3>
+          <div class="muted">Carga y administra usuarios</div>
+          <table id="usersTable" style="margin-top:12px">
+            <thead><tr><th>Usuario</th><th>Rol</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <aside>
+          <h3 style="margin-top:0">Crear usuario</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <input id="newUser" placeholder="username" />
+            <input id="newPass" placeholder="password" type="password" />
+            <select id="newRole">
+              <option value="systems">systems</option>
+              <option value="director">director</option>
+              <option value="user">user</option>
+            </select>
+            <div style="display:flex;gap:8px">
+              <button id="createBtn" class="btn btn-primary">Crear</button>
+              <button id="refreshBtn" class="btn btn-ghost" onclick="loadUsers()">Actualizar</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <div id="editModal" style="display:none;margin-top:16px">
+        <h3>Editar usuario</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <input id="editUsername" disabled style="min-width:160px" />
+          <input id="editPassword" placeholder="Nueva password (vacío = sin cambio)" type="password" />
+          <select id="editRole">
+            <option value="systems">systems</option>
+            <option value="director">director</option>
+            <option value="user">user</option>
+          </select>
+          <div style="display:flex;gap:8px">
+            <button id="saveEdit" class="btn btn-primary">Guardar</button>
+            <button id="cancelEdit" class="btn btn-ghost">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="msg" class="muted"></div>
+    </div>
+  </div>
+
+  <script>
+    // Usamos las mismas claves que el index principal
+    const tokenKey = 'rm_token';
+    const roleKey  = 'rm_role';
+    const base = '';
+
+    function getToken() {
+      return localStorage.getItem(tokenKey) || null;
+    }
+    function getRole() {
+      return localStorage.getItem(roleKey) || null;
+    }
+
+    function getAuthHeader() {
+      const t = getToken();
+      return t ? { 'Authorization': 'Bearer ' + t } : {};
+    }
+
+    function setMsg(t) { document.getElementById('msg').textContent = t; }
+
+    function logout() {
+      localStorage.removeItem(tokenKey);
+      localStorage.removeItem(roleKey);
+      window.location.href = '/';
+    }
+
+    async function loadUsers() {
+      const token = getToken();
+      if (!token) {
+        // si no hay token volvemos a la pantalla principal (index) donde está el login overlay
+        window.location.href = '/';
+        return;
+      }
+
+      try {
+        const res = await fetch(base + '/users', { headers: getAuthHeader() });
+        if (res.status === 401) {
+          // token inválido o sin permisos: forzamos logout y redirigimos al index
+          alert('Sesión inválida o sin permisos.');
+          logout();
+          return;
+        }
+        if (!res.ok) throw res;
+        const users = await res.json();
+        renderUsers(users);
+        setMsg('Usuarios cargados: ' + users.length);
+      } catch (err) {
+        console.error(err);
+        setMsg('Error cargando usuarios: ' + (err.statusText || err.message || err));
+      }
+    }
+
+    function renderUsers(users) {
+      const tbody = document.querySelector('#usersTable tbody');
+      tbody.innerHTML = '';
+      for (const u of users) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${u.username}</td><td>${u.role}</td><td class="row-actions"></td>`;
+        const act = tr.querySelector('.row-actions');
+        const editBtn = document.createElement('button'); editBtn.className='smallBtn btn btn-ghost'; editBtn.textContent='Editar';
+        editBtn.onclick = () => openEdit(u.username, u.role);
+        const delBtn = document.createElement('button'); delBtn.className='smallBtn btn btn-ghost'; delBtn.textContent='Borrar';
+        delBtn.onclick = () => delUser(u.username);
+        // sólo mostrar borrar si rol local es systems
+        if (getRole() !== 'systems') {
+          delBtn.style.display = 'none';
+          editBtn.style.display = 'none';
+        }
+        act.appendChild(editBtn); act.appendChild(delBtn);
+        tbody.appendChild(tr);
+      }
+    }
+
+    document.getElementById('createBtn').onclick = async () => {
+      const username = document.getElementById('newUser').value.trim();
+      const password = document.getElementById('newPass').value;
+      const role = document.getElementById('newRole').value;
+      if (!username || !password) { setMsg('username y password requeridos'); return; }
+      try {
+        const r = await fetch(base + '/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+          body: JSON.stringify({ username, password, role })
+        });
+        if (r.status === 401) { alert('No autorizado'); logout(); return; }
+        if (!r.ok) throw r;
+        setMsg('Usuario creado');
+        document.getElementById('newUser').value = '';
+        document.getElementById('newPass').value = '';
+        loadUsers();
+      } catch (e) {
+        console.error(e);
+        setMsg('Error creando: ' + (e.statusText || e.message || e));
+      }
+    };
+
+    function openEdit(username, role) {
+      document.getElementById('editModal').style.display = 'block';
+      document.getElementById('editUsername').value = username;
+      document.getElementById('editRole').value = role;
+      document.getElementById('editPassword').value = '';
+    }
+
+    document.getElementById('cancelEdit').onclick = () => { document.getElementById('editModal').style.display = 'none'; };
+
+    document.getElementById('saveEdit').onclick = async () => {
+      const username = document.getElementById('editUsername').value;
+      const password = document.getElementById('editPassword').value;
+      const role = document.getElementById('editRole').value;
+      const body = {};
+      if (password) body.password = password;
+      if (role) body.role = role;
+      try {
+        const r = await fetch(base + '/users/' + encodeURIComponent(username), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+          body: JSON.stringify(body)
+        });
+        if (r.status === 401) { alert('No autorizado'); logout(); return; }
+        if (!r.ok) throw r;
+        setMsg('Usuario actualizado');
+        document.getElementById('editModal').style.display = 'none';
+        loadUsers();
+      } catch (e) {
+        console.error(e);
+        setMsg('Error actualizando: ' + (e.statusText || e.message || e));
+      }
+    };
+
+    async function delUser(username) {
+      if (!confirm('Borrar usuario ' + username + ' ?')) return;
+      try {
+        const r = await fetch(base + '/users/' + encodeURIComponent(username), {
+          method: 'DELETE',
+          headers: getAuthHeader()
+        });
+        if (r.status === 401) { alert('No autorizado'); logout(); return; }
+        if (!r.ok) throw r;
+        setMsg('Usuario borrado');
+        loadUsers();
+      } catch (e) {
+        console.error(e);
+        setMsg('Error borrando: ' + (e.statusText || e.message || e));
+      }
+    }
+
+    // inicializar: si no hay token redirige al index (donde está el overlay de login)
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!getToken()) {
+        window.location.href = '/';
+        return;
+      }
+      // Si rol no es systems, ocultar crear/editar/borrar (seguridad UX)
+      if (getRole() !== 'systems') {
+        const createBtn = document.getElementById('createBtn'); if (createBtn) createBtn.style.display = 'none';
+        const newInputs = ['newUser','newPass','newRole']; newInputs.forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
+      }
+      loadUsers();
+    });
+  </script>
+</body>
+</html>

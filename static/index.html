@@ -1,0 +1,1237 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Centro de control Santa María</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-2: #06b6d4;
+      --ok: #10b981;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --radius: 12px;
+      --gap: 16px;
+      --card-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    * {
+      box-sizing: border-box
+    }
+
+    #modalResult {
+      white-space: pre-wrap;
+      /* preserva saltos y wrap */
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    html,
+    body {
+      height: 100%
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial;
+      background: var(--bg);
+      color: #0f1724;
+      padding: 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center
+    }
+
+    .wrap {
+      width: 100%;
+      max-width: 1100px
+    }
+
+    /* Login overlay */
+    #authOverlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(15, 23, 36, 0.03);
+      z-index: 40;
+      padding: 20px
+    }
+
+    .loginCard {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: var(--card-shadow);
+      border: 1px solid rgba(15, 23, 42, 0.04)
+    }
+
+    .logoCircle {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 700;
+      margin-bottom: 12px
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 20px
+    }
+
+    p.lead {
+      margin: 6px 0 18px;
+      color: var(--muted);
+      font-size: 14px
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: transparent;
+      font-size: 14px
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      box-shadow: 0 8px 30px rgba(37, 99, 235, 0.06);
+      border-color: rgba(37, 99, 235, 0.12)
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 0;
+      cursor: pointer;
+      font-weight: 600
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: white
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      color: var(--muted)
+    }
+
+    main.app {
+      display: none
+    }
+
+    .topBar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px
+    }
+
+    .titleArea {
+      display: flex;
+      gap: 12px;
+      align-items: center
+    }
+
+    .small {
+      font-size: 13px;
+      color: var(--muted)
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 16px
+    }
+
+    @media(max-width:900px) {
+      .layout {
+        grid-template-columns: 1fr
+      }
+    }
+
+    /* Clients grid */
+    .clients-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.04);
+      box-shadow: var(--card-shadow)
+    }
+
+    .clients-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 12px
+    }
+
+    .clientTile {
+      background: linear-gradient(180deg, rgba(2, 6, 23, 0.02), transparent);
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(15, 23, 42, 0.04);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      transition: transform .12s ease, box-shadow .12s ease
+    }
+
+    .clientTile:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06)
+    }
+
+    .clientId {
+      font-weight: 700;
+      font-size: 14px;
+      color: #0b1320
+    }
+
+    .clientName {
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .statusBadge {
+      padding: 6px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(16, 185, 129, 0.08);
+      color: var(--ok);
+      border: 1px solid rgba(16, 185, 129, 0.12);
+    }
+
+    .offlineBadge {
+      background: rgba(239, 68, 68, 0.06);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.08);
+      justify-content: flex-end;
+    }
+
+    /* Card for send to all */
+    .allTile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px
+    }
+
+    .allIcon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 700;
+      margin-bottom: 8px
+    }
+
+    /* Right column */
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px
+    }
+
+    .stat {
+      background: var(--surface);
+      padding: 12px;
+      border-radius: 10px;
+      text-align: center;
+      border: 1px solid rgba(15, 23, 42, 0.04)
+    }
+
+    pre {
+      background: transparent;
+      color: var(--muted);
+      padding: 10px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      margin: 0;
+      max-height: 260px;
+      overflow: auto;
+      border: 1px dashed rgba(15, 23, 42, 0.04)
+    }
+
+
+    /* Modal */
+    .modalOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.45);
+      display: none;
+      z-index: 60;
+      padding: 20px;
+      align-items: center;
+      justify-content: center;
+      overflow: auto
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 800px;
+      /* límite máximo en pantallas grandes */
+      min-width: 400px;
+      /* da un ancho mínimo razonable en PC */
+      background: var(--surface);
+      border-radius: 12px;
+      margin: auto;
+      padding: 28px;
+      box-shadow: 0 18px 60px rgba(2, 6, 23, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      max-height: calc(100vh - 60px);
+      overflow-y: auto;
+      transition: all 0.25s ease;
+    }
+
+    /* Adaptativo para móvil */
+    @media (max-width: 500px) {
+      .modal {
+        min-width: unset;
+        /* evita forzar ancho grande */
+        max-width: calc(100vw - 40px);
+        /* ocupa casi toda la pantalla */
+        padding: 18px 20px;
+      }
+    }
+
+    .modal h3 {
+      margin: 0 0 8px 0
+    }
+
+    .modal .row {
+      display: flex;
+      gap: 10px
+    }
+
+    .modal .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px
+    }
+
+    .tab {
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer
+    }
+
+    .tab.active {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      color: white
+    }
+
+    .screenContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    /* Updated screenFrame to avoid cropping and show placeholder */
+    .screenFrame {
+      width: 100%;
+      max-height: 80vh;
+      /* no ocupará más que la ventana */
+      min-height: 260px;
+      /* <-- evita el colapso: se verá como área grande */
+      background: #111;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 12px;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    /* Placeholder shown before any frame is available */
+    .screenPlaceholder {
+      width: 100%;
+      height: 100%;
+      min-height: 220px;
+      /* asegura espacio vertical para el placeholder */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: rgba(255, 255, 255, 0.85);
+      text-align: center;
+      font-size: 14px;
+      pointer-events: auto;
+      /* permitir clicks (útil si quieres disparar start al click) */
+      box-sizing: border-box;
+      padding: 8px;
+      transition: opacity .18s ease;
+    }
+
+    .screenPlaceholder .mutedLine {
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 400;
+      font-size: 13px;
+    }
+
+    .screenPlaceholder svg {
+      width: 72px;
+      height: 72px;
+      opacity: 0.95
+    }
+
+    /* new: spinner overlay centered in screenFrame */
+    .screenSpinner {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(2px);
+    }
+
+    .screenSpinner::after {
+      content: "";
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.12);
+      border-top-color: rgba(255, 255, 255, 0.95);
+      animation: spin 1s linear infinite;
+      display: block;
+      box-sizing: border-box;
+    }
+
+    .logoIcon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      object-fit: contain;
+      padding: 5px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .screenFrame img {
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: none;
+      /* hidden until a frame is set */
+      z-index: 3;
+      position: relative;
+    }
+
+    @media(max-width:480px) {
+      body {
+        padding: 12px
+      }
+
+      .clients-grid {
+        grid-template-columns: repeat(2, 1fr)
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <!-- Login overlay -->
+    <div id="authOverlay">
+      <div class="loginCard">
+        <div class="logoCircle">RM</div>
+        <h1>Iniciar sesión</h1>
+        <p class="lead">Accede para ver y controlar tus clientes remotos.</p>
+        <label for="username">Usuario</label>
+        <input id="username" placeholder="usuario" autocomplete="username" />
+        <label for="password">Contraseña</label>
+        <input id="password" type="password" placeholder="contraseña" autocomplete="current-password" />
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn btn-primary" onclick="login()">Entrar</button>
+          <button class="btn btn-ghost" onclick="fillDemo()">Demo</button>
+        </div>
+        <div id="loginStatus" class="small" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <main class="app">
+      <div class="topBar">
+        <div class="titleArea">
+          <img src="/static/logo.png" alt="Logo IS" class="logoIcon">
+          <h2 style="margin:0">IS Santa María</h2>
+          <div class="small">Centro de control</div>
+        </div>
+        <div style="display:flex;align-items:center">
+          <div class="small" style="margin-right:12px">Estado: <strong id="statusText">desconectado</strong></div>
+          <button id="manageUsersBtn" class="btn btn-ghost" style="margin-left:8px"
+            onclick="window.location.href='/static/users.html'">Gestionar usuarios</button>
+
+          <!-- logout button inserted dynamically -->
+        </div>
+      </div>
+
+      <div class="layout">
+        <section class="clients-card">
+          <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+            <div>
+              <label class="small">Buscar</label>
+              <input id="filterInput" placeholder="Buscar por id, nombre o host" oninput="applyFilter()" />
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-ghost" onclick="refreshClients()">Actualizar</button>
+            </div>
+          </div>
+
+          <div class="clients-grid" id="clientsGrid">
+            <!-- client cards rendered here -->
+          </div>
+        </section>
+
+        <aside class="controls">
+          <div class="stat">
+            <div style="font-size:12px;color:var(--muted)">Conectados</div>
+            <div id="connectedCount" style="font-size:20px;font-weight:700">0</div>
+          </div>
+          <div class="stat">
+            <div style="font-size:12px;color:var(--muted)">Total</div>
+            <div id="totalCount" style="font-size:20px;font-weight:700">0</div>
+          </div>
+          <div class="stat">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Logs</div>
+            <pre id="logArea">Sin registros.</pre>
+          </div>
+        </aside>
+      </div>
+
+      <!-- La sección de "Atajos rápidos" fue eliminada a petición -->
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div id="modalOverlay" class="modalOverlay">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div>
+          <h3 id="modalTitle">Cliente</h3>
+          <div class="small" id="modalSub">ID: -</div>
+        </div>
+        <div><button class="btn btn-ghost" onclick="closeModal()">Cerrar</button></div>
+      </div>
+
+      <div class="tabs">
+        <div id="tabMsg" class="tab active" onclick="switchTab('msg')">Mensaje</div>
+        <div id="tabCmd" class="tab" onclick="switchTab('cmd')">Comando</div>
+        <div id="tabScreen" class="tab" onclick="switchTab('screen')">Pantalla</div>
+      </div>
+
+      <div id="modalBody">
+        <!-- message -->
+        <div id="panelMsg">
+          <label class="small">Mensaje</label>
+          <textarea id="modalMessage" placeholder="Mensaje para el cliente"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-primary" onclick="sendMessageModal()">Enviar mensaje</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('modalMessage').value=''">Limpiar</button>
+          </div>
+        </div>
+
+        <!-- command -->
+        <div id="panelCmd" style="display:none">
+          <label class="small">Comando</label>
+          <input id="modalCmdInput" placeholder="Comando a ejecutar" />
+          <label class="small" style="margin-top:8px">Timeout (segundos)</label>
+          <input id="modalCmdTimeout" placeholder="10" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-primary" onclick="execCommandModal()">Ejecutar comando</button>
+            <button type="button" class="btn btn-ghost" onclick="clearExecModal()">Limpiar</button>
+          </div>
+        </div>
+
+        <!-- screen -->
+        <div id="panelScreen" style="display:none">
+          <div class="screenContainer">
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-primary" id="startScreenBtn" onclick="startScreenStream()">Iniciar
+                transmisión</button>
+              <button class="btn btn-ghost" id="stopScreenBtn" onclick="stopScreenStream()">Detener transmisión</button>
+              <div class="small" style="margin-left:auto">FPS: <input id="screenFps"
+                  style="width:60px;margin-left:6px;padding:6px;border-radius:8px;border:1px solid rgba(15,23,42,0.06)"
+                  value="2" /></div>
+            </div>
+
+            <!-- Updated screen frame: placeholder + img + spinner -->
+            <div class="screenFrame">
+              <div id="screenPlaceholder" class="screenPlaceholder" aria-hidden="false">
+                <!-- Laptop SVG icon -->
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <rect x="2.5" y="4.5" width="19" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5"
+                    fill="none" />
+                  <rect x="6" y="8" width="12" height="6" fill="currentColor" opacity="0.06" />
+                  <path d="M3 18h18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                  <path d="M8 21h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+                <div style="color:rgba(255,255,255,0.85);font-weight:600">Pantalla del cliente</div>
+                <div class="mutedLine">Presiona "Iniciar transmisión" para mostrar la pantalla</div>
+              </div>
+
+              <img id="screenImg" src="" alt="Pantalla del cliente" />
+
+              <!-- Spinner: visible mientras esperamos primer frame / entre frames -->
+              <div id="screenSpinner" class="screenSpinner" aria-hidden="true"></div>
+            </div>
+
+            <div class="small">Consejo: inicia la transmisión desde aquí y luego la vista se actualizará
+              automáticamente.</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="modalResult" style="margin-top:12px;color:var(--muted)"></div>
+    </div>
+  </div>
+
+  <script>
+    // globals
+    let token = null; let role = null; let latestClients = []; let currentTarget = null; // client_id or 'ALL'
+    let screenInterval = null;
+    // previousObjectUrl: URL of the last successfully loaded image (we revoke it when a new one loads or on stop)
+    let previousObjectUrl = null;
+    // screenRefreshId used to invalidate out-of-order/in-flight responses when start/stop happens rapidly
+    let screenRefreshId = 0;
+
+    // --- Persistencia de sesión ---
+    function saveAuth(tok, rl) {
+      token = tok;
+      role = rl || null;
+      try {
+        localStorage.setItem('rm_token', tok);
+        if (rl) localStorage.setItem('rm_role', rl);
+        else localStorage.removeItem('rm_role');
+      } catch (e) { console.warn('No se pudo guardar token:', e); }
+    }
+
+    function clearAuth() {
+      token = null;
+      role = null;
+      try {
+        localStorage.removeItem('rm_token');
+        localStorage.removeItem('rm_role');
+      } catch (e) { }
+    }
+
+    function showAppUI() {
+      document.getElementById('authOverlay').style.display = 'none';
+      document.querySelector('main.app').style.display = 'block';
+      document.getElementById('statusText').textContent = 'conectado';
+
+      // Añadir botón de logout si no existe
+      const topBar = document.querySelector('.topBar');
+      if (topBar && !document.getElementById('logoutBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'logoutBtn';
+        btn.className = 'btn btn-ghost';
+        btn.style.marginLeft = '12px';
+        btn.textContent = 'Cerrar sesión';
+        btn.onclick = logout;
+        topBar.appendChild(btn);
+      }
+
+      // --- Mostrar/ocultar botón "Gestionar usuarios" según el rol ---
+      const role = localStorage.getItem('rm_role');
+      const manageBtn = document.getElementById('manageUsersBtn');
+      if (manageBtn) {
+        manageBtn.style.display = (role === 'systems') ? 'inline-block' : 'none';
+      }
+    }
+
+    function showLoginUI() {
+      document.getElementById('authOverlay').style.display = 'grid';
+      document.querySelector('main.app').style.display = 'none';
+      document.getElementById('statusText').textContent = 'desconectado';
+    }
+
+    function handleAuthError(reason) {
+      console.warn('Auth error:', reason);
+      clearAuth();
+      showLoginUI();
+      const ls = document.getElementById('loginStatus');
+      if (ls) ls.textContent = reason || 'Sesión inválida, vuelve a iniciar sesión.';
+    }
+
+    // helper: fetch with auth header and 401 handling
+    async function authFetch(path, opts = {}) {
+      opts = opts || {};
+      opts.headers = opts.headers || {};
+      if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+      // default JSON content-type when sending body and not provided
+      if (opts.body && !opts.headers['Content-Type']) {
+        opts.headers['Content-Type'] = 'application/json';
+      }
+      const res = await fetch(path, opts);
+      if (res.status === 401) {
+        handleAuthError('Token inválido o expirado. Por favor inicia sesión de nuevo.');
+        throw new Error('401');
+      }
+      return res;
+    }
+
+    // reemplaza la función existente por esta
+    window.clearExecModal = function (ev) {
+      try { if (ev && typeof ev.preventDefault === 'function') ev.preventDefault(); } catch (e) { }
+      const input = document.getElementById('modalCmdInput');
+      const timeout = document.getElementById('modalCmdTimeout');
+      const result = document.getElementById('modalResult');
+
+      if (input) input.value = '';
+      if (timeout) timeout.value = '10';
+
+      // Si renderResult está definida, úsala para limpiar (mantiene consistencia)
+      if (typeof renderResult === 'function') {
+        try { renderResult(''); } catch (e) { if (result) result.textContent = ''; }
+      } else {
+        if (result) result.textContent = '';
+      }
+
+      // colocar foco en el input para mejor UX
+      try { if (input) input.focus(); } catch (e) { }
+    };
+
+
+    // small helpers
+    function fillDemo() { document.getElementById('username').value = 'admin'; document.getElementById('password').value = 'admin'; }
+
+    async function login() {
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+      const status = document.getElementById('loginStatus'); status.textContent = '';
+      if (!u || !p) { status.textContent = 'Ingresa usuario y contraseña.'; return }
+      try {
+        const res = await fetch('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          const tok = data.access_token;
+          const rl = data.role || null;
+          saveAuth(tok, rl);
+          showAppUI();
+          status.textContent = '';
+          try { await refreshClients(); } catch (e) { console.warn('refresh clients tras login falló', e); }
+        } else {
+          status.textContent = data.detail || JSON.stringify(data);
+        }
+      } catch (e) {
+        status.textContent = 'Error conectando al servidor: ' + e
+      }
+    }
+
+    function createClientTile(c) {
+      const div = document.createElement('div'); div.className = 'clientTile';
+      const id = document.createElement('div'); id.className = 'clientId'; id.textContent = c.client_id;
+      const name = document.createElement('div'); name.className = 'clientName'; name.textContent = c.name || '(sin nombre)';
+      const host = document.createElement('div'); host.className = 'small'; host.textContent = c.hostname || '';
+      const badge = document.createElement('div'); badge.className = c.connected ? 'statusBadge' : 'statusBadge offlineBadge'; badge.textContent = c.connected ? 'online' : 'offline';
+      div.appendChild(id); div.appendChild(name); div.appendChild(host); div.appendChild(badge);
+      div.onclick = () => openModal(c.client_id);
+      return div;
+    }
+
+    function populateClientCards(clients, filter = '') {
+      latestClients = clients || [];
+      const grid = document.getElementById('clientsGrid'); grid.innerHTML = '';
+      // Add 'All' tile
+      const allTile = document.createElement('div'); allTile.className = 'clientTile allTile'; allTile.onclick = () => openModal('ALL');
+      allTile.innerHTML = `<div class="allIcon">ALL</div><div style="font-weight:700">Enviar a todos</div><div class="small">Enviar mensaje o comando a todos los clientes</div>`;
+      grid.appendChild(allTile);
+
+      const q = (filter || '').trim().toLowerCase();
+      for (const c of clients) {
+        const text = `${c.client_id} ${c.name || ''} ${c.hostname || ''}`.toLowerCase();
+        if (q && !text.includes(q)) continue;
+        grid.appendChild(createClientTile(c));
+      }
+
+      document.getElementById('connectedCount').textContent = clients.filter(c => c.connected).length;
+      document.getElementById('totalCount').textContent = clients.length;
+    }
+
+    function applyFilter() { const q = document.getElementById('filterInput').value; populateClientCards(latestClients, q); }
+
+    async function refreshClients() {
+      if (!token) { alert('Inicia sesión primero'); return; }
+      try {
+        const res = await authFetch('/clients');
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert('Error al obtener clientes: ' + (err.detail || res.status));
+          return;
+        }
+        const data = await res.json();
+        latestClients = data;
+        populateClientCards(data, document.getElementById('filterInput').value || '');
+        document.getElementById('logArea').textContent = `[${new Date().toLocaleTimeString()}] Clientes actualizados: ${data.length}\n` + document.getElementById('logArea').textContent;
+      } catch (e) {
+        if (e.message === '401') return;
+        alert('Error al refrescar clientes: ' + e);
+      }
+    }
+
+    // Modal logic
+    function openModal(clientId) {
+      currentTarget = clientId;
+      document.getElementById('modalOverlay').style.display = 'grid';
+      document.getElementById('modalTitle').textContent = clientId === 'ALL' ? 'Enviar a todos' : 'Cliente';
+      document.getElementById('modalSub').textContent = 'ID: ' + clientId;
+      document.getElementById('modalResult').textContent = '';
+      document.getElementById('modalMessage').value = '';
+      document.getElementById('modalCmdInput').value = '';
+      document.getElementById('modalCmdTimeout').value = '10';
+
+      // show/hide screen tab depending on selection
+      const tabScreen = document.getElementById('tabScreen');
+      if (tabScreen) { tabScreen.style.display = clientId === 'ALL' ? 'none' : 'inline-block'; }
+
+      // hide command tab if user role is not systems
+      const tabCmd = document.getElementById('tabCmd');
+      const userRole = role || localStorage.getItem('rm_role');
+      if (tabCmd) {
+        if (userRole !== 'systems') {
+          tabCmd.style.display = 'none';
+          // ensure command panel hidden and not active
+          const panelCmd = document.getElementById('panelCmd');
+          if (panelCmd) panelCmd.style.display = 'none';
+          tabCmd.classList.remove('active');
+          const tabMsg = document.getElementById('tabMsg');
+          if (tabMsg) tabMsg.classList.add('active');
+        } else {
+          // show it (systems) — still hide if ALL and you want; here we allow commands for ALL too
+          tabCmd.style.display = 'inline-block';
+        }
+      }
+
+      switchTab('msg');
+    }
+
+    function closeModal() { stopLocalScreenRefresh(); document.getElementById('modalOverlay').style.display = 'none'; currentTarget = null; }
+    function switchTab(which) {
+      document.getElementById('panelMsg').style.display = which === 'msg' ? 'block' : 'none';
+      document.getElementById('panelCmd').style.display = which === 'cmd' ? 'block' : 'none';
+      document.getElementById('panelScreen').style.display = which === 'screen' ? 'block' : 'none';
+      document.getElementById('tabMsg').classList.toggle('active', which === 'msg');
+      document.getElementById('tabCmd').classList.toggle('active', which === 'cmd');
+      document.getElementById('tabScreen').classList.toggle('active', which === 'screen');
+
+      if (which !== 'screen') {
+        stopLocalScreenRefresh();
+      }
+
+      if (which === 'screen') {
+        const ph = document.getElementById('screenPlaceholder');
+        const img = document.getElementById('screenImg');
+        if (ph) ph.style.display = (img && img.src && img.style.display === 'block') ? 'none' : 'flex';
+      }
+    }
+
+    // helper: renderizar respuesta en modalResult respetando saltos de línea
+    function renderResult(data) {
+      const el = document.getElementById('modalResult');
+      if (!el) return;
+
+      let out = '';
+
+      try {
+        // si data es string, intentar parsearlo a JSON
+        if (typeof data === 'string') {
+          try { data = JSON.parse(data); } catch { }
+        }
+
+        // tu backend devuelve { responses: { "<cliente>": { result: {...} } } }
+        if (data && data.responses) {
+          const all = [];
+          for (const [client, info] of Object.entries(data.responses)) {
+            const result = info.result || {};
+            const stdout = result.stdout?.trim() || '';
+            const stderr = result.stderr?.trim() || '';
+            const header = `=== ${client} ===`;
+            let section = stdout || '(sin salida)';
+            if (stderr) section += `\n\nSTDERR:\n${stderr}`;
+            all.push(`${header}\n${section}`);
+          }
+          out = all.join('\n\n');
+        }
+        // si tiene stdout/stderr directamente (caso simple)
+        else if (data && (data.stdout || data.stderr)) {
+          out = (data.stdout || '') + (data.stderr ? `\n\nSTDERR:\n${data.stderr}` : '');
+        }
+        // si es un string simple
+        else if (typeof data === 'string') {
+          out = data;
+        }
+        // si es algo más, lo mostramos formateado
+        else {
+          out = JSON.stringify(data, null, 2);
+        }
+      } catch (err) {
+        out = `Error mostrando resultado: ${err}`;
+      }
+
+      el.textContent = out;
+    }
+
+
+    async function sendMessageModal() {
+      const msg = document.getElementById('modalMessage').value.trim();
+      if (!msg) { alert('Escribe un mensaje.'); return }
+      const target = currentTarget === 'ALL' ? latestClients.map(c => c.client_id) : [currentTarget];
+      try {
+        const res = await authFetch('/send_message', { method: 'POST', body: JSON.stringify({ client_ids: target, message: msg }) });
+        if (!res.ok) { const err = await res.json().catch(() => ({})); document.getElementById('modalResult').textContent = JSON.stringify(err, null, 2); return; }
+        const data = await res.json().catch(() => ({}));
+        document.getElementById('modalResult').textContent = JSON.stringify(data, null, 2);
+        document.getElementById('logArea').textContent = `[${new Date().toLocaleTimeString()}] Mensaje enviado a ${target.length} cliente(s)\n` + document.getElementById('logArea').textContent;
+      } catch (e) {
+        if (e.message === '401') return;
+        document.getElementById('modalResult').textContent = 'Error: ' + e;
+      }
+    }
+
+    async function execCommandModal() {
+      const cmd = document.getElementById('modalCmdInput').value.trim();
+      const timeout = parseInt(document.getElementById('modalCmdTimeout').value) || 10;
+      if (!cmd) { alert('Escribe el comando a ejecutar.'); return }
+      const target = currentTarget === 'ALL' ? latestClients.map(c => c.client_id) : [currentTarget];
+      try {
+        const res = await authFetch('/exec', { method: 'POST', body: JSON.stringify({ client_ids: target, command: cmd, timeout_seconds: timeout }) });
+        if (!res.ok) { const err = await res.json().catch(() => ({})); renderResult(data); return; }
+        const data = await res.json().catch(() => ({}));
+        renderResult(data);
+        document.getElementById('logArea').textContent = `[${new Date().toLocaleTimeString()}] Ejecutado: ${cmd} -> ${target.length} cliente(s)\n` + document.getElementById('logArea').textContent;
+      } catch (e) {
+        if (e.message === '401') return;
+        document.getElementById('modalResult').textContent = 'Error: ' + e;
+      }
+    }
+
+    async function execCommandModal() {
+      const cmd = document.getElementById('modalCmdInput').value.trim();
+      const timeout = parseInt(document.getElementById('modalCmdTimeout').value) || 10;
+
+      if (!cmd) {
+        alert('Escribe el comando a ejecutar.');
+        return;
+      }
+
+      const target = currentTarget === 'ALL'
+        ? latestClients.map(c => c.client_id)
+        : [currentTarget];
+
+      try {
+        // Llamada al backend
+        const res = await authFetch('/exec', {
+          method: 'POST',
+          body: JSON.stringify({
+            client_ids: target,
+            command: cmd,
+            timeout_seconds: timeout
+          })
+        });
+
+        // Si la respuesta no fue OK, mostrar error
+        if (!res.ok) {
+          let errBody = null;
+          const ct = res.headers.get('content-type') || '';
+
+          if (ct.includes('application/json')) {
+            errBody = await res.json().catch(() => null);
+          } else {
+            errBody = await res.text().catch(() => null);
+          }
+
+          renderResult(errBody || `Error: ${res.status}`);
+          return;
+        }
+
+        // Si la respuesta fue OK
+        const ct = res.headers.get('content-type') || '';
+        let data = null;
+
+        if (ct.includes('application/json')) {
+          data = await res.json().catch(() => null);
+        } else {
+          data = await res.text().catch(() => null);
+        }
+
+        // Mostrar la salida del comando en el modal
+        renderResult(data);
+
+        // Registrar en el log
+        const log = document.getElementById('logArea');
+        const now = new Date().toLocaleTimeString();
+        log.textContent =
+          `[${now}] Ejecutado: ${cmd} → ${target.length} cliente(s)\n` +
+          log.textContent;
+
+      } catch (e) {
+        if (e.message === '401') return; // token expirado, ya manejado
+        renderResult('Error: ' + e.message);
+      }
+    }
+
+
+
+    // Screen viewing functions
+
+    async function startScreenStream() {
+      if (!token) { alert('Inicia sesión'); return }
+      if (!currentTarget || currentTarget === 'ALL') { alert('Selecciona un cliente individual'); return }
+      try {
+        const res = await authFetch(`/clients/${currentTarget}/screen/start`, { method: 'POST' });
+        if (!res.ok) { const err = await res.json().catch(() => ({})); alert('Error iniciando stream: ' + (err.detail || res.status)); return }
+        document.getElementById('logArea').textContent = `[${new Date().toLocaleTimeString()}] Solicitud de inicio de transmisión enviada a ${currentTarget}\n` + document.getElementById('logArea').textContent;
+        // show spinner and start refreshing frames
+        startLocalScreenRefresh();
+      } catch (e) { if (e.message === '401') return; alert('Error: ' + e) }
+    }
+
+    async function stopScreenStream() {
+      if (!token) { alert('Inicia sesión'); return }
+      if (!currentTarget || currentTarget === 'ALL') { alert('Selecciona un cliente individual'); return }
+      try {
+        const res = await authFetch(`/clients/${currentTarget}/screen/stop`, { method: 'POST' });
+        if (!res.ok) { const err = await res.json().catch(() => ({})); alert('Error deteniendo stream: ' + (err.detail || res.status)); return }
+        document.getElementById('logArea').textContent = `[${new Date().toLocaleTimeString()}] Solicitud de detención de transmisión enviada a ${currentTarget}\n` + document.getElementById('logArea').textContent;
+        stopLocalScreenRefresh();
+      } catch (e) { if (e.message === '401') return; alert('Error: ' + e) }
+    }
+
+    function stopLocalScreenRefresh() {
+      // increment id to invalidate in-flight fetches
+      screenRefreshId++;
+      if (screenInterval) { clearInterval(screenInterval); screenInterval = null; }
+
+      const img = document.getElementById('screenImg');
+      const ph = document.getElementById('screenPlaceholder');
+      const spinner = document.getElementById('screenSpinner');
+
+      // remove handlers and hide image
+      if (img) {
+        try { img.onload = null; img.onerror = null; } catch (e) { }
+        img.style.display = 'none';
+        img.src = '';
+      }
+
+      // revoke the previous objectURL if there was one
+      if (previousObjectUrl) {
+        try { URL.revokeObjectURL(previousObjectUrl); } catch (e) { console.warn('Error revoking previousObjectUrl', e); }
+        previousObjectUrl = null;
+      }
+
+      // ensure spinner hidden and placeholder visible
+      if (spinner) { spinner.style.display = 'none'; spinner.setAttribute('aria-hidden', 'true'); }
+      if (ph) ph.style.display = 'flex';
+    }
+
+    function startLocalScreenRefresh() {
+      if (!token) return;
+      if (!currentTarget || currentTarget === 'ALL') return;
+
+      // increment id so previous in-flight fetches are invalidated
+      screenRefreshId++;
+      const myId = screenRefreshId;
+
+      // clear any previous interval
+      if (screenInterval) { clearInterval(screenInterval); screenInterval = null; }
+
+      const fps = parseInt(document.getElementById('screenFps').value) || 2;
+      const interval = Math.max(200, Math.round(1000 / fps));
+
+      // show spinner while waiting for first frame
+      const spinner = document.getElementById('screenSpinner');
+      const ph = document.getElementById('screenPlaceholder');
+      if (spinner) { spinner.style.display = 'flex'; spinner.setAttribute('aria-hidden', 'false'); }
+      if (ph) { ph.style.display = 'flex'; }
+
+      // first fetch immediately, then schedule periodic fetches
+      fetchAndSetFrame(myId);
+      screenInterval = setInterval(() => fetchAndSetFrame(myId), interval);
+    }
+
+    async function fetchAndSetFrame(myId) {
+      // ensure this refresh session is still valid
+      if (myId !== screenRefreshId) return;
+      if (!token) return;
+      if (!currentTarget || currentTarget === 'ALL') return;
+
+      try {
+        // add cache-buster and instruct fetch to not use cache. This reduces chance of proxies returning stale frames.
+        const url = `/clients/${currentTarget}/screen?t=${Date.now()}`;
+        const res = await authFetch(url, { cache: 'no-store' });
+
+        // after awaiting fetch results, check again that the session is still valid
+        if (myId !== screenRefreshId) {
+          // stale response: ignore
+          return;
+        }
+
+        if (!res.ok) {
+          // 404 = no frame available yet -> keep spinner visible but don't error
+          if (res.status === 404) return;
+          const err = await res.json().catch(() => ({}));
+          console.warn('Error fetching frame', err);
+          return;
+        }
+
+        const blob = await res.blob();
+        if (!blob) return;
+
+        const newUrl = URL.createObjectURL(blob);
+        const img = document.getElementById('screenImg');
+        const ph = document.getElementById('screenPlaceholder');
+        const spinner = document.getElementById('screenSpinner');
+
+        if (!img) {
+          // if for any reason img is gone, revoke and bail out
+          try { URL.revokeObjectURL(newUrl); } catch (e) { }
+          return;
+        }
+
+        // Set up handlers that only act if this session id still matches
+        img.onload = function () {
+          try {
+            // If this response is stale, revoke and dont apply
+            if (myId !== screenRefreshId) {
+              try { URL.revokeObjectURL(newUrl); } catch (e) { }
+              return;
+            }
+            // Revoke the previous object URL now that new image loaded successfully
+            if (previousObjectUrl && previousObjectUrl !== newUrl) {
+              try { URL.revokeObjectURL(previousObjectUrl); } catch (e) { console.warn('revoking previous', e); }
+            }
+            previousObjectUrl = newUrl;
+            img.style.display = 'block';
+            if (ph) ph.style.display = 'none';
+            if (spinner) { spinner.style.display = 'none'; spinner.setAttribute('aria-hidden', 'true'); }
+          } catch (e) {
+            console.error('onload handler error', e);
+          } finally {
+            img.onload = null;
+          }
+        };
+
+        img.onerror = function () {
+          // image failed to load — revoke this new url and show placeholder (only if still active)
+          try { URL.revokeObjectURL(newUrl); } catch (e) { }
+          if (myId === screenRefreshId) {
+            img.style.display = 'none';
+            if (ph) ph.style.display = 'flex';
+            if (spinner) { spinner.style.display = 'none'; spinner.setAttribute('aria-hidden', 'true'); }
+          }
+          img.onerror = null;
+        };
+
+        // assign src — this will trigger onload/onerror
+        img.src = newUrl;
+        // Note: we do NOT revoke previousObjectUrl here until the new image successfully loads (in onload)
+      } catch (e) {
+        if (e.message === '401') return;
+        console.error('Error fetching frame', e);
+        // hide spinner on hard error
+        const spinner = document.getElementById('screenSpinner');
+        if (spinner) { spinner.style.display = 'none'; spinner.setAttribute('aria-hidden', 'true'); }
+      }
+    }
+
+    // logout
+    function logout() {
+      clearAuth();
+      stopLocalScreenRefresh();
+      showLoginUI();
+      const ls = document.getElementById('loginStatus');
+      if (ls) ls.textContent = 'Sesión cerrada.';
+    }
+
+    // Init: restore session if token in localStorage
+    window.addEventListener('load', async () => {
+      try {
+        const saved = localStorage.getItem('rm_token');
+        const savedRole = localStorage.getItem('rm_role');
+        if (saved) {
+          token = saved;
+          role = savedRole;
+          showAppUI();
+          try {
+            await refreshClients();
+          } catch (e) {
+            // if refreshClients threw due to 401, it was handled in authFetch
+            console.warn('refreshClients falló al restaurar sesión', e);
+          }
+        } else {
+          showLoginUI();
+        }
+      } catch (e) {
+        console.error('Error al restaurar sesión:', e);
+        showLoginUI();
+      }
+    });
+
+    // Demo / dev clients (uncomment to use local demo without backend)
+    // window.addEventListener('load',()=>{ latestClients=[{client_id:'c1',name:'Cliente A',hostname:'host-a',connected:true},{client_id:'c2',name:'Cliente B',hostname:'host-b',connected:false},{client_id:'c3',name:'Cliente C',hostname:'host-c',connected:true}]; populateClientCards(latestClients); document.querySelector('main.app').style.display='none'; });
+  </script>
+</body>
+
+</html>
