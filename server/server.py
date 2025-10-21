@@ -752,5 +752,5 @@ def root():
 # -----------------------
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Server running on http://0.0.0.0:9000")
-    uvicorn.run("server:app", host="0.0.0.0", port=9000, log_level="info", workers=1)
+    logger.info("Server running on http://0.0.0.0:80")
+    uvicorn.run("server:app", host="0.0.0.0", port=80, log_level="info", workers=1)
