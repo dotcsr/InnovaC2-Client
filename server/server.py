@@ -843,8 +843,8 @@ async def shutdown_event():
 # -----------------------
 @app.get("/", response_class=HTMLResponse)
 def root():
-    if os.path.exists("server/static/index.html"):
-        return FileResponse("server/static/index.html")
+    if os.path.exists("static/index.html"):
+        return FileResponse("static/index.html")
     return HTMLResponse("<h1>RemoteManager</h1><p>API running.</p>")
 
 # -----------------------
