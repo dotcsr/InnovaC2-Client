@@ -8,9 +8,10 @@ import uuid
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
+from urllib.parse import urlparse
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from jose import jwt, JWTError
@@ -162,11 +163,15 @@ class CreateUserReq(BaseModel):
 class SendMessageReq(BaseModel):
     client_ids: List[str]
     message: str
+    message_type: Optional[str] = "fixed"     # 'fixed' | 'temporary' | 'hidden'
+    timeout_seconds: Optional[int] = None     # aplicable si message_type == 'temporary'
 
 class ExecReq(BaseModel):
     client_ids: List[str]
-    command: str
+    command: Optional[str] = None
     timeout_seconds: Optional[int] = 10
+    open_url: Optional[str] = None   # si se envía, abre enlace en cliente
+
 
 # -----------------------
 # Default users
@@ -320,27 +325,72 @@ async def set_client_name(client_id: str, payload: dict, request: Request, db=De
 # -----------------------
 @app.post("/send_message")
 async def send_message(req: SendMessageReq, request: Request, db=Depends(get_db)):
+    """
+    Envia un mensaje a los clientes listados en req.client_ids.
+
+    Payload WebSocket enviado a cada cliente:
+      {
+        "type": "message",
+        "message": "...",
+        "message_type": "fixed" | "temporary" | "hidden",
+        "timeout_seconds": 5   # si aplica (temporal)
+      }
+
+    Compatibilidad: los clientes que no sepan de message_type simplemente
+    deberán ignorar los campos extra y procesar "message" como antes.
+    """
     current = get_user_from_token_sync(request, db)
     require_role(current, ["systems", "director"])
     results = {}
 
+    # Normalizar message_type
+    mt = (req.message_type or "fixed").lower()
+    if mt not in ("fixed", "temporary", "hidden"):
+        mt = "fixed"
+
+    # Si es temporal, validar timeout (valor por defecto 5s si no se provee)
+    timeout_val = None
+    if mt == "temporary":
+        try:
+            timeout_val = int(req.timeout_seconds) if req.timeout_seconds is not None else 5
+            if timeout_val <= 0:
+                timeout_val = 5
+        except Exception:
+            timeout_val = 5
+
     tasks = []
     target_ids = []
+
+    # Construir tareas de envío
     async with clients_ws_lock:
         for cid in req.client_ids:
             ws = clients_ws.get(cid)
             if ws:
                 async def _send(ws_ref, cid_ref):
                     try:
-                        await ws_ref.send_text(json.dumps({"type": "message", "message": req.message}))
-                        return ("sent", None)
-                    except Exception as e:
-                        return ("send_failed", str(e))
+                        payload = {
+                            "type": "message",
+                            "message": req.message,
+                            "message_type": mt
+                        }
+                        if mt == "temporary":
+                            payload["timeout_seconds"] = timeout_val
+                        # para message_type == 'hidden' dejamos content en payload para que
+                        # el cliente lo pueda almacenar y mostrar cuando se pulse "ver"
+                        try:
+                            await ws_ref.send_text(json.dumps(payload))
+                            return ("sent", None)
+                        except Exception as e:
+                            return ("send_failed", str(e))
+                    except Exception as ex:
+                        return ("send_failed", str(ex))
+
                 tasks.append(_send(ws, cid))
                 target_ids.append(cid)
             else:
                 results[cid] = "offline"
 
+    # Ejecutar envíos concurrentes si hay tareas
     if tasks:
         send_results = await asyncio.gather(*tasks, return_exceptions=True)
         for cid, r in zip(target_ids, send_results):
@@ -349,7 +399,15 @@ async def send_message(req: SendMessageReq, request: Request, db=Depends(get_db)
             else:
                 status, err = r
                 results[cid] = "sent" if status == "sent" else f"{status}: {err}"
-    return {"results": results}
+
+    # Responder con texto (compatible con frontend que espera texto)
+    if results and all(v == "sent" for v in results.values()):
+        return PlainTextResponse("Mensaje enviado correctamente ✅")
+    else:
+        # Si no hay entradas en results (por ejemplo lista vacía), devolver info neutra
+        if not results:
+            return PlainTextResponse("No se enviaron mensajes (lista de clientes vacía).")
+        return PlainTextResponse("Resultados: " + json.dumps(results, ensure_ascii=False))
 
 # -----------------------
 # Remote exec (futures)
@@ -372,6 +430,48 @@ async def exec_command(req: ExecReq, request: Request, db=Depends(get_db)):
     require_role(current, ["systems"])
     responses = {}
 
+    # 1) Si viene open_url: manejamos solo esa rama y retornamos
+    if req.open_url:
+        url = (req.open_url or "").strip()
+        if not url:
+            raise HTTPException(status_code=400, detail="open_url vacío")
+
+        parsed = urlparse(url)
+        if not parsed.scheme:
+            url = "https://" + url
+            parsed = urlparse(url)
+        if not parsed.netloc:
+            raise HTTPException(status_code=400, detail="open_url inválido")
+
+        async with clients_ws_lock:
+            tasks = []
+            target_ids = []
+            for cid in req.client_ids:
+                ws = clients_ws.get(cid)
+                if ws:
+                    async def _send_open(ws_ref, cid_ref):
+                        try:
+                            await ws_ref.send_text(json.dumps({"type": "open_url", "url": url}))
+                            return ("sent", None)
+                        except Exception as e:
+                            return ("send_failed", str(e))
+                    tasks.append(_send_open(ws, cid))
+                    target_ids.append(cid)
+                else:
+                    responses[cid] = "offline"
+
+        if tasks:
+            send_results = await asyncio.gather(*tasks, return_exceptions=True)
+            for cid, r in zip(target_ids, send_results):
+                if isinstance(r, Exception):
+                    responses[cid] = f"send_failed: {r}"
+                else:
+                    status, err = r
+                    responses[cid] = "sent" if status == "sent" else f"{status}: {err}"
+
+        return {"responses": responses}
+
+    # 2) Si NO es open_url → ejecutamos el comando como antes (tu código original)
     async def send_and_wait(cid, cmd, timeout):
         async with clients_ws_lock:
             ws = clients_ws.get(cid)
@@ -696,7 +796,7 @@ async def reconcile(request: Request, db=Depends(get_db)):
     except Exception as e:
         logger.exception("Error during reconcile: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
-
+    
 # -----------------------
 # Startup / Shutdown
 # -----------------------

@@ -488,6 +488,150 @@
         grid-template-columns: repeat(2, 1fr)
       }
     }
+
+    /* Estilos para la sección de tipo de mensaje - más compacta y alineada */
+    .message-type-section {
+      margin-top: 8px;
+      font-size: 13px;
+      /* tamaño reducido */
+      color: var(--muted);
+    }
+
+    .message-type-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: nowrap;
+      /* evitar que salten líneas */
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .message-type-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background .12s ease, border-color .12s ease;
+    }
+
+    /* apariencia sutil al foco/hover */
+    .message-type-row label:hover {
+      background: rgba(37, 99, 235, 0.04);
+      border-color: rgba(15, 23, 42, 0.04);
+    }
+
+    .message-type-row input[type="radio"] {
+      width: 14px;
+      height: 14px;
+      margin: 0;
+      accent-color: var(--accent);
+    }
+
+    /* input para segundos compacto */
+    #modalTimeout {
+      width: 86px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      font-size: 13px;
+      box-sizing: border-box;
+      margin-left: 6px;
+    }
+
+    /* Si el ancho es muy pequeño, permitir que el timeout salte a la siguiente línea sin romper todo */
+    @media (max-width: 520px) {
+      .message-type-row {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      #modalTimeout {
+        width: 100%;
+        margin-left: 0;
+      }
+    }
+
+    /* Botones: dejar igual pero asegurando tamaño compacto */
+    .message-type-section .btn {
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    /* ===== Alineación vertical perfecta para los radios + labels ===== */
+    #panelCmd .cmd-mode-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      /* centra verticalmente todos los hijos */
+      white-space: nowrap;
+      flex-wrap: nowrap;
+      font-size: 13px;
+      line-height: 1;
+      /* evita alturas inesperadas */
+      margin-top: 6px;
+    }
+
+    /* Hacemos que cada par radio+texto se comporte como un elemento centrado */
+    #panelCmd .cmd-mode-row .cmd-item {
+      display: inline-flex;
+      align-items: center;
+      /* centra texto y radio */
+      gap: 8px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--muted);
+      user-select: none;
+      line-height: 1;
+      /* asegurar línea compacta */
+    }
+
+    /* Radio pequeño y perfectamente alineado */
+    #panelCmd .cmd-mode-row input[type="radio"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      vertical-align: middle;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* Ajustes del texto del label para mantenerlo centrado */
+    #panelCmd .cmd-mode-row label {
+      margin: 0;
+      padding: 0;
+      cursor: pointer;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+    }
+
+    /* Hover sutil */
+    #panelCmd .cmd-mode-row .cmd-item:hover {
+      background: rgba(37, 99, 235, 0.04);
+      border-color: rgba(15, 23, 42, 0.04);
+    }
+
+    /* Respeta pequeñas pantallas (permitir wrap si necesario) */
+    @media (max-width: 520px) {
+      #panelCmd .cmd-mode-row {
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 12px;
+      }
+
+      #panelCmd .cmd-mode-row .cmd-item {
+        padding: 6px 10px;
+      }
+    }
   </style>
 </head>
 
@@ -514,7 +658,7 @@
     <main class="app">
       <div class="topBar">
         <div class="titleArea">
-          <img src="/static/logo.png" alt="Logo IS" class="logoIcon">
+          <img src="/server/static/logo.png" alt="Logo IS" class="logoIcon">
           <h2 style="margin:0">IS Santa María</h2>
           <div class="small">Centro de control</div>
         </div>
@@ -586,21 +730,73 @@
         <div id="panelMsg">
           <label class="small">Mensaje</label>
           <textarea id="modalMessage" placeholder="Mensaje para el cliente"></textarea>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn btn-primary" onclick="sendMessageModal()">Enviar mensaje</button>
-            <button class="btn btn-ghost" onclick="document.getElementById('modalMessage').value=''">Limpiar</button>
+          <!-- INICIO: tipo de mensaje (pegar aquí, dentro de #panelMsg, debajo del textarea) -->
+          <div class="message-type-section">
+            <label class="small">Tipo de mensaje</label>
+
+            <div class="message-type-row" role="radiogroup" aria-label="Tipo de mensaje">
+              <label title="Mensaje fijo (no desaparece)">
+                <input type="radio" name="messageType" value="fixed" checked aria-checked="true"> Mensaje fijo
+              </label>
+
+              <label title="Mensaje temporal (desaparece después de N segundos)">
+                <input type="radio" name="messageType" value="temporary" aria-checked="false"> Mensaje temporal
+              </label>
+
+              <input type="number" id="modalTimeout" name="timeout" placeholder="Segundos" min="1" disabled
+                aria-label="Segundos para mensaje temporal">
+
+              <label title="Mensaje oculto (se muestra solo al pulsar ver)">
+                <input type="radio" name="messageType" value="hidden" aria-checked="false"> Mensaje oculto
+              </label>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn btn-primary" id="sendMessageBtn" onclick="sendMessageModal()">Enviar mensaje</button>
+              <button class="btn btn-ghost" type="button"
+                onclick="document.getElementById('modalMessage').value='';">Limpiar</button>
+            </div>
           </div>
+          <!-- FIN: tipo de mensaje -->
+
         </div>
 
         <!-- command -->
         <div id="panelCmd" style="display:none">
           <label class="small">Comando</label>
-          <input id="modalCmdInput" placeholder="Comando a ejecutar" />
-          <label class="small" style="margin-top:8px">Timeout (segundos)</label>
-          <input id="modalCmdTimeout" placeholder="10" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn btn-primary" onclick="execCommandModal()">Ejecutar comando</button>
-            <button type="button" class="btn btn-ghost" onclick="clearExecModal()">Limpiar</button>
+
+          <div class="cmd-mode-row">
+            <span class="cmd-item">
+              <input id="cmdRadioExec" type="radio" name="cmdMode" value="exec" checked />
+              <label for="cmdRadioExec">Ejecutar comando</label>
+            </span>
+
+            <span class="cmd-item">
+              <input id="cmdRadioUrl" type="radio" name="cmdMode" value="url" />
+              <label for="cmdRadioUrl">Abrir enlace en cliente</label>
+            </span>
+          </div>
+
+          <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+            <!-- comando -->
+            <div id="cmdExecArea">
+              <input id="modalCmdInput" placeholder="Comando a ejecutar" />
+              <label class="small" style="margin-top:6px">Timeout (segundos)</label>
+              <input id="modalCmdTimeout" placeholder="10" />
+            </div>
+
+            <!-- url -->
+            <div id="cmdUrlArea" style="display:none">
+              <label class="small">URL (incluye http/https)</label>
+              <input id="modalCmdUrl" placeholder="https://example.com" />
+              <div class="small" style="color:var(--muted)">Nota: el enlace se abrirá en el navegador del cliente
+                automáticamente.</div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button class="btn btn-primary" id="execBtn" onclick="execCommandModal()">Enviar</button>
+              <button type="button" class="btn btn-ghost" onclick="clearExecModal()">Limpiar</button>
+            </div>
           </div>
         </div>
 
@@ -648,15 +844,228 @@
   </div>
 
   <script>
-    // globals
-    let token = null; let role = null; let latestClients = []; let currentTarget = null; // client_id or 'ALL'
+    // ------------------------
+    // Globals
+    // ------------------------
+    let token = null;
+    let role = null;
+    let latestClients = [];
+    let currentTarget = null; // client_id or 'ALL'
     let screenInterval = null;
-    // previousObjectUrl: URL of the last successfully loaded image (we revoke it when a new one loads or on stop)
     let previousObjectUrl = null;
-    // screenRefreshId used to invalidate out-of-order/in-flight responses when start/stop happens rapidly
     let screenRefreshId = 0;
 
-    // --- Persistencia de sesión ---
+    // ------------------------
+    // Helper: renderizar respuesta en modalResult (maneja null/undefined/vacío)
+    // ------------------------
+    function renderResult(data) {
+      const el = document.getElementById('modalResult');
+      if (!el) return;
+
+      // Si la respuesta es null/undefined o string vacío, mostramos mensaje claro
+      if (data === null || data === undefined || data === '') {
+        el.textContent = '(sin respuesta del servidor)';
+        return;
+      }
+
+      let out = '';
+
+      try {
+        // Si data es string que contiene JSON, intentar parsearlo
+        if (typeof data === 'string') {
+          try { data = JSON.parse(data); } catch { /* no es JSON */ }
+        }
+
+        // Estructura esperada: { responses: { "<cliente>": { result: {...} } } }
+        if (data && data.responses && typeof data.responses === 'object') {
+          const all = [];
+          for (const [client, info] of Object.entries(data.responses)) {
+            const result = info.result || {};
+            const stdout = (result.stdout || '').toString().trim();
+            const stderr = (result.stderr || '').toString().trim();
+            const header = `=== ${client} ===`;
+            let section = stdout || '(sin salida)';
+            if (stderr) section += `\n\nSTDERR:\n${stderr}`;
+            all.push(`${header}\n${section}`);
+          }
+          out = all.join('\n\n');
+        } else if (data && (data.stdout || data.stderr)) {
+          out = (data.stdout || '') + (data.stderr ? `\n\nSTDERR:\n${data.stderr}` : '');
+        } else if (typeof data === 'string') {
+          out = data;
+        } else {
+          out = JSON.stringify(data, null, 2);
+        }
+      } catch (err) {
+        out = `Error mostrando resultado: ${err}`;
+      }
+
+      el.textContent = out;
+    }
+
+    // ------------------------
+    // Toggle comando vs URL (inicialización única)
+    // ------------------------
+    function initCmdUrlToggle() {
+      const rExec = document.getElementById('cmdRadioExec');
+      const rUrl = document.getElementById('cmdRadioUrl');
+      const execArea = document.getElementById('cmdExecArea');
+      const urlArea = document.getElementById('cmdUrlArea');
+      const cmdInput = document.getElementById('modalCmdInput');
+      const cmdTimeout = document.getElementById('modalCmdTimeout');
+      const urlInput = document.getElementById('modalCmdUrl');
+
+      function update() {
+        const urlMode = rUrl && rUrl.checked;
+        if (execArea) execArea.style.display = urlMode ? 'none' : 'block';
+        if (urlArea) urlArea.style.display = urlMode ? 'block' : 'none';
+
+        if (cmdInput) { cmdInput.disabled = !!urlMode; if (urlMode) cmdInput.value = ''; }
+        if (cmdTimeout) { cmdTimeout.disabled = !!urlMode; if (urlMode) cmdTimeout.value = '10'; }
+        if (urlInput) { urlInput.disabled = !urlMode; if (urlMode) urlInput.focus(); }
+      }
+
+      if (rExec && rUrl) {
+        rExec.addEventListener('change', update);
+        rUrl.addEventListener('change', update);
+      }
+      try { update(); } catch (e) { /* ignore */ }
+    }
+
+    // ------------------------
+    // Exec command / open URL (una sola implementación robusta)
+    // ------------------------
+    async function execCommandModal() {
+      const cmdEl = document.getElementById('modalCmdInput');
+      const timeoutEl = document.getElementById('modalCmdTimeout');
+      const urlEl = document.getElementById('modalCmdUrl');
+      const radioUrl = document.getElementById('cmdRadioUrl');
+
+      const isUrl = !!(radioUrl && radioUrl.checked);
+
+      if (!currentTarget) { alert('Selecciona un cliente'); return; }
+
+      const target = currentTarget === 'ALL'
+        ? latestClients.map(c => c.client_id).filter(Boolean)
+        : [currentTarget];
+
+      if (!target || target.length === 0) { alert('Selecciona un cliente'); return; }
+
+      const sendBtn = document.getElementById('execBtn') || document.getElementById('sendMessageBtn');
+      if (sendBtn) { sendBtn.disabled = true; sendBtn.style.opacity = '0.7'; }
+
+      try {
+        let res;
+        if (isUrl) {
+          let url = (urlEl ? urlEl.value || '' : '').trim();
+          if (!url) { alert('Ingresa una URL.'); return; }
+          if (!/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//.test(url)) url = 'https://' + url;
+          url = url.replace(/\s+/g, '');
+          try { new URL(url); } catch (e) { alert('URL inválida: ' + e.message); return; }
+
+          const payload = { client_ids: target, open_url: url };
+          res = await authFetch('/exec', { method: 'POST', body: JSON.stringify(payload) });
+
+        } else {
+          const cmd = cmdEl ? (cmdEl.value || '').trim() : '';
+          const timeout = timeoutEl ? (parseInt(timeoutEl.value, 10) || 10) : 10;
+          if (!cmd) { alert('Escribe el comando a ejecutar.'); return; }
+
+          const payload = { client_ids: target, command: cmd, timeout_seconds: timeout };
+          res = await authFetch('/exec', { method: 'POST', body: JSON.stringify(payload) });
+        }
+
+        // Intentar parsear JSON de forma segura (res.clone())
+        let parsed = null;
+        try {
+          parsed = await res.clone().json().catch(() => null);
+        } catch (e) {
+          parsed = null;
+        }
+
+        // Si no hay JSON, obtener texto
+        let text = null;
+        if (parsed === null) {
+          text = await res.text().catch(() => '');
+          // si text contiene JSON aunque no tuviera header correcto, intentamos parsearlo
+          if (text) {
+            try { parsed = JSON.parse(text); } catch (e) { /* queda texto */ }
+          }
+        }
+
+        // Manejo de errores HTTP
+        if (!res.ok) {
+          const errBody = parsed !== null ? parsed : (text || `Error: ${res.status}`);
+          renderResult(errBody);
+          return;
+        }
+
+        // OK: si tenemos objeto JSON, lo renderizamos; si tenemos texto, lo mostramos
+        if (parsed !== null) {
+          // Detectar si es respuesta de apertura de URL
+          const isUrlResponse =
+            parsed.responses &&
+            Object.values(parsed.responses).some(v => v === "sent" || typeof v === "string");
+
+          if (isUrlResponse) {
+            document.getElementById("modalResult").textContent = "✅ URL enviada correctamente";
+          } else {
+            renderResult(parsed);
+          }
+        } else if (text) {
+          // mostrar texto plano (no JSON)
+          renderResult(text);
+        } else {
+          // ni JSON ni texto: informar claramente
+          document.getElementById('modalResult').textContent = '(sin contenido)';
+        }
+
+        // Log
+        const log = document.getElementById('logArea');
+        const now = new Date().toLocaleTimeString();
+        if (isUrl) {
+          if (log) log.textContent = `[${now}] Enlace enviado → ${target.length} cliente(s)\n` + log.textContent;
+        } else {
+          const cmd = cmdEl ? (cmdEl.value || '').trim() : '';
+          if (log) log.textContent = `[${now}] Ejecutado: ${cmd} -> ${target.length} cliente(s)\n` + log.textContent;
+        }
+
+      } catch (e) {
+        if (e && e.message === '401') return;
+        const el = document.getElementById('modalResult');
+        if (el) el.textContent = 'Error: ' + (e && e.message ? e.message : e);
+      } finally {
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.style.opacity = ''; }
+      }
+    }
+
+    // ------------------------
+    // Limpiar modal (única implementación)
+    // ------------------------
+    function clearExecModal(ev) {
+      try { if (ev && typeof ev.preventDefault === 'function') ev.preventDefault(); } catch (e) { }
+      const input = document.getElementById('modalCmdInput');
+      const timeout = document.getElementById('modalCmdTimeout');
+      const url = document.getElementById('modalCmdUrl');
+      const result = document.getElementById('modalResult');
+
+      if (input) input.value = '';
+      if (timeout) timeout.value = '10';
+      if (url) url.value = '';
+
+      // Usar renderResult para limpiar si existe
+      if (typeof renderResult === 'function') {
+        try { renderResult(''); } catch (e) { if (result) result.textContent = ''; }
+      } else {
+        if (result) result.textContent = '';
+      }
+
+      try { if (input) input.focus(); } catch (e) { }
+    }
+
+    // ------------------------
+    // Persistencia de sesión
+    // ------------------------
     function saveAuth(tok, rl) {
       token = tok;
       role = rl || null;
@@ -676,35 +1085,45 @@
       } catch (e) { }
     }
 
+    // ------------------------
+    // UI: mostrar app / login
+    // ------------------------
     function showAppUI() {
-      document.getElementById('authOverlay').style.display = 'none';
-      document.querySelector('main.app').style.display = 'block';
-      document.getElementById('statusText').textContent = 'conectado';
+      try { document.getElementById('authOverlay').style.display = 'none'; } catch (e) { }
+      try { document.querySelector('main.app').style.display = 'block'; } catch (e) { }
+      try { document.getElementById('statusText').textContent = 'conectado'; } catch (e) { }
 
       // Añadir botón de logout si no existe
-      const topBar = document.querySelector('.topBar');
-      if (topBar && !document.getElementById('logoutBtn')) {
-        const btn = document.createElement('button');
-        btn.id = 'logoutBtn';
-        btn.className = 'btn btn-ghost';
-        btn.style.marginLeft = '12px';
-        btn.textContent = 'Cerrar sesión';
-        btn.onclick = logout;
-        topBar.appendChild(btn);
-      }
+      try {
+        const topBar = document.querySelector('.topBar');
+        if (topBar && !document.getElementById('logoutBtn')) {
+          const btn = document.createElement('button');
+          btn.id = 'logoutBtn';
+          btn.className = 'btn btn-ghost';
+          btn.style.marginLeft = '12px';
+          btn.textContent = 'Cerrar sesión';
+          btn.onclick = logout;
+          topBar.appendChild(btn);
+        }
+      } catch (e) { /* non-critical */ }
 
-      // --- Mostrar/ocultar botón "Gestionar usuarios" según el rol ---
-      const role = localStorage.getItem('rm_role');
-      const manageBtn = document.getElementById('manageUsersBtn');
-      if (manageBtn) {
-        manageBtn.style.display = (role === 'systems') ? 'inline-block' : 'none';
-      }
+      // Inicializar toggle de comando/URL (si los elementos existen)
+      try { initCmdUrlToggle(); } catch (e) { /* ignore */ }
+
+      // Mostrar/ocultar botón "Gestionar usuarios"
+      try {
+        const storedRole = role || localStorage.getItem('rm_role');
+        const manageBtn = document.getElementById('manageUsersBtn');
+        if (manageBtn) {
+          manageBtn.style.display = (storedRole === 'systems') ? 'inline-block' : 'none';
+        }
+      } catch (e) { /* ignore */ }
     }
 
     function showLoginUI() {
-      document.getElementById('authOverlay').style.display = 'grid';
-      document.querySelector('main.app').style.display = 'none';
-      document.getElementById('statusText').textContent = 'desconectado';
+      try { document.getElementById('authOverlay').style.display = 'grid'; } catch (e) { }
+      try { document.querySelector('main.app').style.display = 'none'; } catch (e) { }
+      try { document.getElementById('statusText').textContent = 'desconectado'; } catch (e) { }
     }
 
     function handleAuthError(reason) {
@@ -715,13 +1134,15 @@
       if (ls) ls.textContent = reason || 'Sesión inválida, vuelve a iniciar sesión.';
     }
 
-    // helper: fetch with auth header and 401 handling
+    // ------------------------
+    // authFetch: añade header Authorization y maneja 401
+    // ------------------------
     async function authFetch(path, opts = {}) {
       opts = opts || {};
       opts.headers = opts.headers || {};
       if (token) opts.headers['Authorization'] = 'Bearer ' + token;
       // default JSON content-type when sending body and not provided
-      if (opts.body && !opts.headers['Content-Type']) {
+      if (opts.body && !opts.headers['Content-Type'] && !opts.headers['content-type']) {
         opts.headers['Content-Type'] = 'application/json';
       }
       const res = await fetch(path, opts);
@@ -732,54 +1153,47 @@
       return res;
     }
 
-    // reemplaza la función existente por esta
-    window.clearExecModal = function (ev) {
-      try { if (ev && typeof ev.preventDefault === 'function') ev.preventDefault(); } catch (e) { }
-      const input = document.getElementById('modalCmdInput');
-      const timeout = document.getElementById('modalCmdTimeout');
-      const result = document.getElementById('modalResult');
-
-      if (input) input.value = '';
-      if (timeout) timeout.value = '10';
-
-      // Si renderResult está definida, úsala para limpiar (mantiene consistencia)
-      if (typeof renderResult === 'function') {
-        try { renderResult(''); } catch (e) { if (result) result.textContent = ''; }
-      } else {
-        if (result) result.textContent = '';
-      }
-
-      // colocar foco en el input para mejor UX
-      try { if (input) input.focus(); } catch (e) { }
-    };
-
-
-    // small helpers
-    function fillDemo() { document.getElementById('username').value = 'admin'; document.getElementById('password').value = 'admin'; }
-
+    // ------------------------
+    // Login
+    // ------------------------
     async function login() {
-      const u = document.getElementById('username').value.trim();
-      const p = document.getElementById('password').value.trim();
-      const status = document.getElementById('loginStatus'); status.textContent = '';
-      if (!u || !p) { status.textContent = 'Ingresa usuario y contraseña.'; return }
+      const uEl = document.getElementById('username');
+      const pEl = document.getElementById('password');
+      const status = document.getElementById('loginStatus');
+      if (status) status.textContent = '';
+
+      const u = uEl ? (uEl.value || '').trim() : '';
+      const p = pEl ? (pEl.value || '').trim() : '';
+      if (!u || !p) { if (status) status.textContent = 'Ingresa usuario y contraseña.'; return; }
+
       try {
         const res = await fetch('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
-        const data = await res.json().catch(() => ({}));
+        const text = await res.text().catch(() => '');
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch (e) { data = {}; }
+
         if (res.ok) {
-          const tok = data.access_token;
+          const tok = data.access_token || null;
           const rl = data.role || null;
+          if (!tok) {
+            if (status) status.textContent = 'Respuesta de login sin token.';
+            return;
+          }
           saveAuth(tok, rl);
           showAppUI();
-          status.textContent = '';
+          if (status) status.textContent = '';
           try { await refreshClients(); } catch (e) { console.warn('refresh clients tras login falló', e); }
         } else {
-          status.textContent = data.detail || JSON.stringify(data);
+          if (status) status.textContent = data.detail || text || `Error: ${res.status}`;
         }
       } catch (e) {
-        status.textContent = 'Error conectando al servidor: ' + e
+        if (document.getElementById('loginStatus')) document.getElementById('loginStatus').textContent = 'Error conectando al servidor: ' + e;
       }
     }
 
+    // ------------------------
+    // Client cards
+    // ------------------------
     function createClientTile(c) {
       const div = document.createElement('div'); div.className = 'clientTile';
       const id = document.createElement('div'); id.className = 'clientId'; id.textContent = c.client_id;
@@ -793,7 +1207,10 @@
 
     function populateClientCards(clients, filter = '') {
       latestClients = clients || [];
-      const grid = document.getElementById('clientsGrid'); grid.innerHTML = '';
+      const grid = document.getElementById('clientsGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+
       // Add 'All' tile
       const allTile = document.createElement('div'); allTile.className = 'clientTile allTile'; allTile.onclick = () => openModal('ALL');
       allTile.innerHTML = `<div class="allIcon">ALL</div><div style="font-weight:700">Enviar a todos</div><div class="small">Enviar mensaje o comando a todos los clientes</div>`;
@@ -806,41 +1223,52 @@
         grid.appendChild(createClientTile(c));
       }
 
-      document.getElementById('connectedCount').textContent = clients.filter(c => c.connected).length;
-      document.getElementById('totalCount').textContent = clients.length;
+      try { document.getElementById('connectedCount').textContent = clients.filter(c => c.connected).length; } catch (e) { }
+      try { document.getElementById('totalCount').textContent = clients.length; } catch (e) { }
     }
 
-    function applyFilter() { const q = document.getElementById('filterInput').value; populateClientCards(latestClients, q); }
+    function applyFilter() { const q = document.getElementById('filterInput') ? document.getElementById('filterInput').value : ''; populateClientCards(latestClients, q); }
 
+    // ------------------------
+    // Refresh clients
+    // ------------------------
     async function refreshClients() {
       if (!token) { alert('Inicia sesión primero'); return; }
       try {
         const res = await authFetch('/clients');
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
+          const text = await res.text().catch(() => '');
+          let err = {};
+          try { err = text ? JSON.parse(text) : {}; } catch (e) { err = {}; }
           alert('Error al obtener clientes: ' + (err.detail || res.status));
           return;
         }
-        const data = await res.json();
+        const text = await res.text().catch(() => '');
+        let data = [];
+        try { data = text ? JSON.parse(text) : []; } catch (e) { data = []; }
         latestClients = data;
-        populateClientCards(data, document.getElementById('filterInput').value || '');
-        document.getElementById('logArea').textContent = `[${new Date().toLocaleTimeString()}] Clientes actualizados: ${data.length}\n` + document.getElementById('logArea').textContent;
+        populateClientCards(data, document.getElementById('filterInput') ? document.getElementById('filterInput').value : '');
+        const log = document.getElementById('logArea');
+        if (log) log.textContent = `[${new Date().toLocaleTimeString()}] Clientes actualizados: ${data.length}\n` + log.textContent;
       } catch (e) {
-        if (e.message === '401') return;
+        if (e && e.message === '401') return;
         alert('Error al refrescar clientes: ' + e);
       }
     }
 
-    // Modal logic
+    // ------------------------
+    // Modal: open/close/tab switching
+    // ------------------------
     function openModal(clientId) {
       currentTarget = clientId;
-      document.getElementById('modalOverlay').style.display = 'grid';
-      document.getElementById('modalTitle').textContent = clientId === 'ALL' ? 'Enviar a todos' : 'Cliente';
-      document.getElementById('modalSub').textContent = 'ID: ' + clientId;
-      document.getElementById('modalResult').textContent = '';
-      document.getElementById('modalMessage').value = '';
-      document.getElementById('modalCmdInput').value = '';
-      document.getElementById('modalCmdTimeout').value = '10';
+      try { document.getElementById('modalOverlay').style.display = 'grid'; } catch (e) { }
+      try { document.getElementById('modalTitle').textContent = clientId === 'ALL' ? 'Enviar a todos' : 'Cliente'; } catch (e) { }
+      try { document.getElementById('modalSub').textContent = 'ID: ' + clientId; } catch (e) { }
+      try { document.getElementById('modalResult').textContent = ''; } catch (e) { }
+      try { document.getElementById('modalMessage').value = ''; } catch (e) { }
+      try { document.getElementById('modalCmdInput').value = ''; } catch (e) { }
+      try { document.getElementById('modalCmdTimeout').value = '10'; } catch (e) { }
+      try { clearExecModal(); } catch (e) { /* ignore */ }
 
       // show/hide screen tab depending on selection
       const tabScreen = document.getElementById('tabScreen');
@@ -852,14 +1280,12 @@
       if (tabCmd) {
         if (userRole !== 'systems') {
           tabCmd.style.display = 'none';
-          // ensure command panel hidden and not active
           const panelCmd = document.getElementById('panelCmd');
           if (panelCmd) panelCmd.style.display = 'none';
           tabCmd.classList.remove('active');
           const tabMsg = document.getElementById('tabMsg');
           if (tabMsg) tabMsg.classList.add('active');
         } else {
-          // show it (systems) — still hide if ALL and you want; here we allow commands for ALL too
           tabCmd.style.display = 'inline-block';
         }
       }
@@ -867,19 +1293,17 @@
       switchTab('msg');
     }
 
-    function closeModal() { stopLocalScreenRefresh(); document.getElementById('modalOverlay').style.display = 'none'; currentTarget = null; }
+    function closeModal() { stopLocalScreenRefresh(); try { document.getElementById('modalOverlay').style.display = 'none'; } catch (e) { } currentTarget = null; }
+
     function switchTab(which) {
-      document.getElementById('panelMsg').style.display = which === 'msg' ? 'block' : 'none';
-      document.getElementById('panelCmd').style.display = which === 'cmd' ? 'block' : 'none';
-      document.getElementById('panelScreen').style.display = which === 'screen' ? 'block' : 'none';
-      document.getElementById('tabMsg').classList.toggle('active', which === 'msg');
-      document.getElementById('tabCmd').classList.toggle('active', which === 'cmd');
-      document.getElementById('tabScreen').classList.toggle('active', which === 'screen');
+      try { document.getElementById('panelMsg').style.display = which === 'msg' ? 'block' : 'none'; } catch (e) { }
+      try { document.getElementById('panelCmd').style.display = which === 'cmd' ? 'block' : 'none'; } catch (e) { }
+      try { document.getElementById('panelScreen').style.display = which === 'screen' ? 'block' : 'none'; } catch (e) { }
+      try { document.getElementById('tabMsg').classList.toggle('active', which === 'msg'); } catch (e) { }
+      try { document.getElementById('tabCmd').classList.toggle('active', which === 'cmd'); } catch (e) { }
+      try { document.getElementById('tabScreen').classList.toggle('active', which === 'screen'); } catch (e) { }
 
-      if (which !== 'screen') {
-        stopLocalScreenRefresh();
-      }
-
+      if (which !== 'screen') stopLocalScreenRefresh();
       if (which === 'screen') {
         const ph = document.getElementById('screenPlaceholder');
         const img = document.getElementById('screenImg');
@@ -887,180 +1311,130 @@
       }
     }
 
-    // helper: renderizar respuesta en modalResult respetando saltos de línea
-    function renderResult(data) {
-      const el = document.getElementById('modalResult');
-      if (!el) return;
-
-      let out = '';
-
-      try {
-        // si data es string, intentar parsearlo a JSON
-        if (typeof data === 'string') {
-          try { data = JSON.parse(data); } catch { }
-        }
-
-        // tu backend devuelve { responses: { "<cliente>": { result: {...} } } }
-        if (data && data.responses) {
-          const all = [];
-          for (const [client, info] of Object.entries(data.responses)) {
-            const result = info.result || {};
-            const stdout = result.stdout?.trim() || '';
-            const stderr = result.stderr?.trim() || '';
-            const header = `=== ${client} ===`;
-            let section = stdout || '(sin salida)';
-            if (stderr) section += `\n\nSTDERR:\n${stderr}`;
-            all.push(`${header}\n${section}`);
-          }
-          out = all.join('\n\n');
-        }
-        // si tiene stdout/stderr directamente (caso simple)
-        else if (data && (data.stdout || data.stderr)) {
-          out = (data.stdout || '') + (data.stderr ? `\n\nSTDERR:\n${data.stderr}` : '');
-        }
-        // si es un string simple
-        else if (typeof data === 'string') {
-          out = data;
-        }
-        // si es algo más, lo mostramos formateado
-        else {
-          out = JSON.stringify(data, null, 2);
-        }
-      } catch (err) {
-        out = `Error mostrando resultado: ${err}`;
-      }
-
-      el.textContent = out;
-    }
-
-
+    // ------------------------
+    // Send message modal
+    // ------------------------
     async function sendMessageModal() {
-      const msg = document.getElementById('modalMessage').value.trim();
-      if (!msg) { alert('Escribe un mensaje.'); return }
+      const msgEl = document.getElementById('modalMessage');
+      const msg = msgEl ? (msgEl.value || '').trim() : '';
+      if (!msg) { alert('Escribe un mensaje.'); return; }
+
       const target = currentTarget === 'ALL' ? latestClients.map(c => c.client_id) : [currentTarget];
-      try {
-        const res = await authFetch('/send_message', { method: 'POST', body: JSON.stringify({ client_ids: target, message: msg }) });
-        if (!res.ok) { const err = await res.json().catch(() => ({})); document.getElementById('modalResult').textContent = JSON.stringify(err, null, 2); return; }
-        const data = await res.json().catch(() => ({}));
-        document.getElementById('modalResult').textContent = JSON.stringify(data, null, 2);
-        document.getElementById('logArea').textContent = `[${new Date().toLocaleTimeString()}] Mensaje enviado a ${target.length} cliente(s)\n` + document.getElementById('logArea').textContent;
-      } catch (e) {
-        if (e.message === '401') return;
-        document.getElementById('modalResult').textContent = 'Error: ' + e;
-      }
-    }
+      if (!target || target.length === 0) { alert('Selecciona un cliente'); return; }
 
-    async function execCommandModal() {
-      const cmd = document.getElementById('modalCmdInput').value.trim();
-      const timeout = parseInt(document.getElementById('modalCmdTimeout').value) || 10;
-      if (!cmd) { alert('Escribe el comando a ejecutar.'); return }
-      const target = currentTarget === 'ALL' ? latestClients.map(c => c.client_id) : [currentTarget];
-      try {
-        const res = await authFetch('/exec', { method: 'POST', body: JSON.stringify({ client_ids: target, command: cmd, timeout_seconds: timeout }) });
-        if (!res.ok) { const err = await res.json().catch(() => ({})); renderResult(data); return; }
-        const data = await res.json().catch(() => ({}));
-        renderResult(data);
-        document.getElementById('logArea').textContent = `[${new Date().toLocaleTimeString()}] Ejecutado: ${cmd} -> ${target.length} cliente(s)\n` + document.getElementById('logArea').textContent;
-      } catch (e) {
-        if (e.message === '401') return;
-        document.getElementById('modalResult').textContent = 'Error: ' + e;
-      }
-    }
+      const typeEl = document.querySelector('input[name="messageType"]:checked');
+      const messageType = typeEl ? typeEl.value : 'fixed';
+      const timeoutEl = document.getElementById('modalTimeout');
+      const timeoutSeconds = (messageType === 'temporary' && timeoutEl && parseInt(timeoutEl.value, 10) > 0) ? parseInt(timeoutEl.value, 10) : null;
 
-    async function execCommandModal() {
-      const cmd = document.getElementById('modalCmdInput').value.trim();
-      const timeout = parseInt(document.getElementById('modalCmdTimeout').value) || 10;
+      const payload = {
+        client_ids: target,
+        message: msg,
+        message_type: messageType
+      };
+      if (timeoutSeconds !== null) payload.timeout_seconds = timeoutSeconds;
 
-      if (!cmd) {
-        alert('Escribe el comando a ejecutar.');
-        return;
-      }
-
-      const target = currentTarget === 'ALL'
-        ? latestClients.map(c => c.client_id)
-        : [currentTarget];
+      const sendBtn = document.getElementById('sendMessageBtn');
+      if (sendBtn) { sendBtn.disabled = true; sendBtn.style.opacity = '0.7'; }
 
       try {
-        // Llamada al backend
-        const res = await authFetch('/exec', {
+        const res = await authFetch('/send_message', {
           method: 'POST',
-          body: JSON.stringify({
-            client_ids: target,
-            command: cmd,
-            timeout_seconds: timeout
-          })
+          body: JSON.stringify(payload)
         });
 
-        // Si la respuesta no fue OK, mostrar error
+        const ct = res.headers.get('content-type') || '';
+        const text = await res.text().catch(() => '');
         if (!res.ok) {
-          let errBody = null;
-          const ct = res.headers.get('content-type') || '';
-
-          if (ct.includes('application/json')) {
-            errBody = await res.json().catch(() => null);
-          } else {
-            errBody = await res.text().catch(() => null);
-          }
-
-          renderResult(errBody || `Error: ${res.status}`);
+          const err = text || 'Error desconocido';
+          document.getElementById('modalResult').textContent = err;
           return;
         }
 
-        // Si la respuesta fue OK
-        const ct = res.headers.get('content-type') || '';
-        let data = null;
-
-        if (ct.includes('application/json')) {
-          data = await res.json().catch(() => null);
-        } else {
-          data = await res.text().catch(() => null);
+        let data = text;
+        if (text && ct.includes('application/json')) {
+          try { data = JSON.parse(text); } catch (e) { /* keep text */ }
         }
 
-        // Mostrar la salida del comando en el modal
-        renderResult(data);
-
-        // Registrar en el log
+        document.getElementById('modalResult').textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
         const log = document.getElementById('logArea');
-        const now = new Date().toLocaleTimeString();
-        log.textContent =
-          `[${now}] Ejecutado: ${cmd} → ${target.length} cliente(s)\n` +
-          log.textContent;
+        if (log) log.textContent =
+          `[${new Date().toLocaleTimeString()}] Mensaje enviado a ${target.length} cliente(s) (${messageType}${timeoutSeconds ? ' - ' + timeoutSeconds + 's' : ''})\n`
+          + log.textContent;
 
       } catch (e) {
-        if (e.message === '401') return; // token expirado, ya manejado
-        renderResult('Error: ' + e.message);
+        if (e && e.message === '401') return;
+        document.getElementById('modalResult').textContent = 'Error: ' + (e && e.message ? e.message : e);
+      } finally {
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.style.opacity = ''; }
       }
     }
 
+    // ------------------------
+    // Init message type controls (delegación)
+    // ------------------------
+    (function initMessageTypeControls() {
+      const modalOverlay = document.getElementById('modalOverlay');
+      if (!modalOverlay) return;
+      modalOverlay.addEventListener('change', function (ev) {
+        try {
+          const t = ev.target;
+          if (!t) return;
+          if (t.name === 'messageType') {
+            const timeoutInput = document.getElementById('modalTimeout');
+            if (!timeoutInput) return;
+            if (t.value === 'temporary') {
+              timeoutInput.disabled = false;
+              if (!timeoutInput.value) timeoutInput.value = '5';
+              timeoutInput.focus();
+            } else {
+              timeoutInput.disabled = true;
+            }
+          }
+        } catch (err) { console.warn('initMessageTypeControls error', err); }
+      });
+    })();
 
-
+    // ------------------------
     // Screen viewing functions
-
+    // ------------------------
     async function startScreenStream() {
-      if (!token) { alert('Inicia sesión'); return }
-      if (!currentTarget || currentTarget === 'ALL') { alert('Selecciona un cliente individual'); return }
+      if (!token) { alert('Inicia sesión'); return; }
+      if (!currentTarget || currentTarget === 'ALL') { alert('Selecciona un cliente individual'); return; }
       try {
         const res = await authFetch(`/clients/${currentTarget}/screen/start`, { method: 'POST' });
-        if (!res.ok) { const err = await res.json().catch(() => ({})); alert('Error iniciando stream: ' + (err.detail || res.status)); return }
-        document.getElementById('logArea').textContent = `[${new Date().toLocaleTimeString()}] Solicitud de inicio de transmisión enviada a ${currentTarget}\n` + document.getElementById('logArea').textContent;
-        // show spinner and start refreshing frames
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          let err = {};
+          try { err = text ? JSON.parse(text) : {}; } catch (e) { err = {}; }
+          alert('Error iniciando stream: ' + (err.detail || res.status));
+          return;
+        }
+        const log = document.getElementById('logArea');
+        if (log) log.textContent = `[${new Date().toLocaleTimeString()}] Solicitud de inicio de transmisión enviada a ${currentTarget}\n` + log.textContent;
         startLocalScreenRefresh();
-      } catch (e) { if (e.message === '401') return; alert('Error: ' + e) }
+      } catch (e) { if (e && e.message === '401') return; alert('Error: ' + e); }
     }
 
     async function stopScreenStream() {
-      if (!token) { alert('Inicia sesión'); return }
-      if (!currentTarget || currentTarget === 'ALL') { alert('Selecciona un cliente individual'); return }
+      if (!token) { alert('Inicia sesión'); return; }
+      if (!currentTarget || currentTarget === 'ALL') { alert('Selecciona un cliente individual'); return; }
       try {
         const res = await authFetch(`/clients/${currentTarget}/screen/stop`, { method: 'POST' });
-        if (!res.ok) { const err = await res.json().catch(() => ({})); alert('Error deteniendo stream: ' + (err.detail || res.status)); return }
-        document.getElementById('logArea').textContent = `[${new Date().toLocaleTimeString()}] Solicitud de detención de transmisión enviada a ${currentTarget}\n` + document.getElementById('logArea').textContent;
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          let err = {};
+          try { err = text ? JSON.parse(text) : {}; } catch (e) { err = {}; }
+          alert('Error deteniendo stream: ' + (err.detail || res.status));
+          return;
+        }
+        const log = document.getElementById('logArea');
+        if (log) log.textContent = `[${new Date().toLocaleTimeString()}] Solicitud de detención de transmisión enviada a ${currentTarget}\n` + log.textContent;
         stopLocalScreenRefresh();
-      } catch (e) { if (e.message === '401') return; alert('Error: ' + e) }
+      } catch (e) { if (e && e.message === '401') return; alert('Error: ' + e); }
     }
 
     function stopLocalScreenRefresh() {
-      // increment id to invalidate in-flight fetches
       screenRefreshId++;
       if (screenInterval) { clearInterval(screenInterval); screenInterval = null; }
 
@@ -1068,20 +1442,17 @@
       const ph = document.getElementById('screenPlaceholder');
       const spinner = document.getElementById('screenSpinner');
 
-      // remove handlers and hide image
       if (img) {
         try { img.onload = null; img.onerror = null; } catch (e) { }
         img.style.display = 'none';
         img.src = '';
       }
 
-      // revoke the previous objectURL if there was one
       if (previousObjectUrl) {
         try { URL.revokeObjectURL(previousObjectUrl); } catch (e) { console.warn('Error revoking previousObjectUrl', e); }
         previousObjectUrl = null;
       }
 
-      // ensure spinner hidden and placeholder visible
       if (spinner) { spinner.style.display = 'none'; spinner.setAttribute('aria-hidden', 'true'); }
       if (ph) ph.style.display = 'flex';
     }
@@ -1090,49 +1461,40 @@
       if (!token) return;
       if (!currentTarget || currentTarget === 'ALL') return;
 
-      // increment id so previous in-flight fetches are invalidated
       screenRefreshId++;
       const myId = screenRefreshId;
 
-      // clear any previous interval
       if (screenInterval) { clearInterval(screenInterval); screenInterval = null; }
 
-      const fps = parseInt(document.getElementById('screenFps').value) || 2;
+      const fpsEl = document.getElementById('screenFps');
+      const fps = fpsEl ? (parseInt(fpsEl.value, 10) || 2) : 2;
       const interval = Math.max(200, Math.round(1000 / fps));
 
-      // show spinner while waiting for first frame
       const spinner = document.getElementById('screenSpinner');
       const ph = document.getElementById('screenPlaceholder');
       if (spinner) { spinner.style.display = 'flex'; spinner.setAttribute('aria-hidden', 'false'); }
       if (ph) { ph.style.display = 'flex'; }
 
-      // first fetch immediately, then schedule periodic fetches
+      // first fetch immediately
       fetchAndSetFrame(myId);
       screenInterval = setInterval(() => fetchAndSetFrame(myId), interval);
     }
 
     async function fetchAndSetFrame(myId) {
-      // ensure this refresh session is still valid
       if (myId !== screenRefreshId) return;
       if (!token) return;
       if (!currentTarget || currentTarget === 'ALL') return;
 
       try {
-        // add cache-buster and instruct fetch to not use cache. This reduces chance of proxies returning stale frames.
         const url = `/clients/${currentTarget}/screen?t=${Date.now()}`;
         const res = await authFetch(url, { cache: 'no-store' });
 
-        // after awaiting fetch results, check again that the session is still valid
-        if (myId !== screenRefreshId) {
-          // stale response: ignore
-          return;
-        }
+        if (myId !== screenRefreshId) return;
 
         if (!res.ok) {
-          // 404 = no frame available yet -> keep spinner visible but don't error
           if (res.status === 404) return;
-          const err = await res.json().catch(() => ({}));
-          console.warn('Error fetching frame', err);
+          const text = await res.text().catch(() => '');
+          console.warn('Error fetching frame', res.status, text);
           return;
         }
 
@@ -1145,20 +1507,16 @@
         const spinner = document.getElementById('screenSpinner');
 
         if (!img) {
-          // if for any reason img is gone, revoke and bail out
           try { URL.revokeObjectURL(newUrl); } catch (e) { }
           return;
         }
 
-        // Set up handlers that only act if this session id still matches
         img.onload = function () {
           try {
-            // If this response is stale, revoke and dont apply
             if (myId !== screenRefreshId) {
               try { URL.revokeObjectURL(newUrl); } catch (e) { }
               return;
             }
-            // Revoke the previous object URL now that new image loaded successfully
             if (previousObjectUrl && previousObjectUrl !== newUrl) {
               try { URL.revokeObjectURL(previousObjectUrl); } catch (e) { console.warn('revoking previous', e); }
             }
@@ -1174,7 +1532,6 @@
         };
 
         img.onerror = function () {
-          // image failed to load — revoke this new url and show placeholder (only if still active)
           try { URL.revokeObjectURL(newUrl); } catch (e) { }
           if (myId === screenRefreshId) {
             img.style.display = 'none';
@@ -1184,19 +1541,18 @@
           img.onerror = null;
         };
 
-        // assign src — this will trigger onload/onerror
         img.src = newUrl;
-        // Note: we do NOT revoke previousObjectUrl here until the new image successfully loads (in onload)
       } catch (e) {
-        if (e.message === '401') return;
+        if (e && e.message === '401') return;
         console.error('Error fetching frame', e);
-        // hide spinner on hard error
         const spinner = document.getElementById('screenSpinner');
         if (spinner) { spinner.style.display = 'none'; spinner.setAttribute('aria-hidden', 'true'); }
       }
     }
 
-    // logout
+    // ------------------------
+    // Logout
+    // ------------------------
     function logout() {
       clearAuth();
       stopLocalScreenRefresh();
@@ -1205,7 +1561,9 @@
       if (ls) ls.textContent = 'Sesión cerrada.';
     }
 
-    // Init: restore session if token in localStorage
+    // ------------------------
+    // Init: restaurar sesión si hay token en localStorage
+    // ------------------------
     window.addEventListener('load', async () => {
       try {
         const saved = localStorage.getItem('rm_token');
@@ -1214,12 +1572,7 @@
           token = saved;
           role = savedRole;
           showAppUI();
-          try {
-            await refreshClients();
-          } catch (e) {
-            // if refreshClients threw due to 401, it was handled in authFetch
-            console.warn('refreshClients falló al restaurar sesión', e);
-          }
+          try { await refreshClients(); } catch (e) { console.warn('refreshClients falló al restaurar sesión', e); }
         } else {
           showLoginUI();
         }
@@ -1229,9 +1582,13 @@
       }
     });
 
-    // Demo / dev clients (uncomment to use local demo without backend)
-    // window.addEventListener('load',()=>{ latestClients=[{client_id:'c1',name:'Cliente A',hostname:'host-a',connected:true},{client_id:'c2',name:'Cliente B',hostname:'host-b',connected:false},{client_id:'c3',name:'Cliente C',hostname:'host-c',connected:true}]; populateClientCards(latestClients); document.querySelector('main.app').style.display='none'; });
+    // ------------------------
+    // Opcional: demo/dev clients (descomenta para desarrollo local sin backend)
+    // ------------------------
+    // window.addEventListener('load',()=>{ latestClients=[{client_id:'c1',name:'Cliente A',hostname:'host-a',connected:true},{client_id:'c2',name:'Cliente B',hostname:'host-b',connected:false},{client_id:'c3',name:'Cliente C',hostname:'host-c',connected:true}]; populateClientCards(latestClients); document.querySelector('main.app').style.display='block'; });
+
   </script>
+
 </body>
 
 </html>

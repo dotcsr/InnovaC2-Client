@@ -24,52 +24,59 @@ import asyncio
 import threading
 import subprocess
 
-async def show_message_text(msg):
+async def show_message_text(msg, timeout_seconds: int = None):
     """
-    Muestra un mensaje en una ventana sin bordes, moderna y centrada en la pantalla principal,
-    con título, ícono y botón Aceptar.
-    Si no hay entorno gráfico o no se puede crear la GUI en el hilo actual, usa notify-send o print.
-    - Requisitos: screeninfo (pip install screeninfo)
-    - Debe llamarse desde el hilo principal para que la ventana Tk se muestre correctamente.
+    Muestra un mensaje en una ventana sin bordes, moderna y centrada.
+    - timeout_seconds: si es entero >0, la ventana se cerrará automáticamente tras ese número de segundos.
+      Si se pulsa "Aceptar" antes, la ventana se cierra y el timer (si existe) se cancela.
+    - Si no hay tkinter / no se puede crear GUI, intenta usar notify-send con timeout (si aplica) o hace un print.
     """
     try:
         import tkinter as tk
         from screeninfo import get_monitors
     except Exception:
-        # no tkinter o screeninfo: fallback
+        # fallback a notify-send (Linux) con timeout si tenemos timeout_seconds
         try:
-            subprocess.run(["notify-send", "Mensaje remoto", msg])
+            if timeout_seconds and isinstance(timeout_seconds, int) and timeout_seconds > 0:
+                # notify-send -t expects milliseconds
+                subprocess.run(["notify-send", "Mensaje remoto", msg, "-t", str(int(timeout_seconds * 1000))])
+            else:
+                subprocess.run(["notify-send", "Mensaje remoto", msg])
         except Exception:
             print(f"[MESSAGE] {msg}")
         return
 
-    # Si no estamos en el hilo principal, no intentamos crear Tk (evita segfault en Linux)
+    # Si no estamos en el hilo principal, hacemos fallback (notify-send / print)
     if threading.current_thread() is not threading.main_thread():
         try:
-            subprocess.run(["notify-send", "Mensaje remoto", msg])
+            if timeout_seconds and isinstance(timeout_seconds, int) and timeout_seconds > 0:
+                subprocess.run(["notify-send", "Mensaje remoto", msg, "-t", str(int(timeout_seconds * 1000))])
+            else:
+                subprocess.run(["notify-send", "Mensaje remoto", msg])
         except Exception:
             print(f"[MESSAGE] {msg}")
         return
 
-    # Obtenemos el loop de asyncio (la función es async, así que debe existir)
+    # Obtener loop de asyncio (debe existir)
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
-        # Si por alguna razón no hay loop corriendo, hacer fallback
         try:
-            subprocess.run(["notify-send", "Mensaje remoto", msg])
+            if timeout_seconds and isinstance(timeout_seconds, int) and timeout_seconds > 0:
+                subprocess.run(["notify-send", "Mensaje remoto", msg, "-t", str(int(timeout_seconds * 1000))])
+            else:
+                subprocess.run(["notify-send", "Mensaje remoto", msg])
         except Exception:
             print(f"[MESSAGE] {msg}")
         return
 
-    # Inicializar root una sola vez (guardado como atributo en la función)
+    # Inicializar root una sola vez (se reutiliza)
     if not hasattr(show_message_text, "_tk_root") or show_message_text._tk_root is None:
         root = tk.Tk()
-        root.withdraw()  # ocultamos el root principal
+        root.withdraw()
         show_message_text._tk_root = root
-        show_message_text._tk_update_interval = 0.02  # intervalo en segundos para procesar eventos
+        show_message_text._tk_update_interval = 0.02
 
-        # updater que llama periódicamente a root.update() usando el loop de asyncio
         def _tk_updater():
             root_ref = getattr(show_message_text, "_tk_root", None)
             if root_ref is None:
@@ -77,129 +84,84 @@ async def show_message_text(msg):
             try:
                 root_ref.update()
             except tk.TclError:
-                # root fue destruido externamente
                 show_message_text._tk_root = None
                 return
-            # re-schedule
             try:
                 loop.call_later(show_message_text._tk_update_interval, _tk_updater)
             except Exception:
-                # si el loop ya no existe, limpiamos
                 show_message_text._tk_root = None
 
-        # arrancar el updater en el próximo ciclo del loop
         loop.call_soon(_tk_updater)
     else:
         root = show_message_text._tk_root
 
-    # --- Crear la ventana (Toplevel) y su contenido ---
+    # Crear la ventana Toplevel
     try:
         win = tk.Toplevel(root)
-        win.overrideredirect(True)  # sin bordes
+        win.overrideredirect(True)
         try:
             win.attributes("-topmost", True)
         except Exception:
             pass
         win.configure(bg="#1E1E1E")
 
-        # Contenedor principal
         frame = tk.Frame(win, bg="#1E1E1E")
-        frame.pack(padx=40, pady=35)
+        frame.pack(padx=28, pady=22)
 
-        # Header
         header_frame = tk.Frame(frame, bg="#1E1E1E")
         header_frame.pack(anchor="center")
 
-        # Ícono (fallback si la fuente emoji no existe)
         try:
-            icon_label = tk.Label(
-                header_frame,
-                text="📩",
-                font=("Noto Color Emoji", 25),
-                bg="#1E1E1E",
-                fg="#EAEAEA"
-            )
+            icon_label = tk.Label(header_frame, text="📩", font=("Noto Color Emoji", 22), bg="#1E1E1E", fg="#EAEAEA")
         except Exception:
-            icon_label = tk.Label(
-                header_frame,
-                text="📩",
-                bg="#1E1E1E",
-                fg="#EAEAEA"
-            )
-        icon_label.pack(pady=(0, 10))
+            icon_label = tk.Label(header_frame, text="📩", bg="#1E1E1E", fg="#EAEAEA")
+        icon_label.pack(pady=(0, 8))
 
-        # Título (fallback de fuente)
         try:
-            title_font = ("Segoe UI", 13, "bold")
+            title_font = ("Segoe UI", 12, "bold")
         except Exception:
             title_font = None
+        title_label = tk.Label(header_frame, text="Tienes un mensaje de dirección", font=title_font, bg="#1E1E1E", fg="#FFFFFF")
+        title_label.pack(pady=(0, 10))
 
-        title_label = tk.Label(
-            header_frame,
-            text="Tienes un mensaje de dirección",
-            font=title_font,
-            bg="#1E1E1E",
-            fg="#FFFFFF"
-        )
-        title_label.pack(pady=(0, 15))
-
-        # Mensaje principal
         try:
-            msg_font = ("Segoe UI", 11)
+            msg_font = ("Segoe UI", 10)
         except Exception:
             msg_font = None
+        msg_label = tk.Label(frame, text=msg, fg="#DCDCDC", bg="#1E1E1E", font=msg_font, justify="center", wraplength=420)
+        msg_label.pack(pady=(0, 18))
 
-        msg_label = tk.Label(
-            frame,
-            text=msg,
-            fg="#DCDCDC",
-            bg="#1E1E1E",
-            font=msg_font,
-            justify="center",
-            wraplength=420
-        )
-        msg_label.pack(pady=(0, 30))
+        # Control para el timer de autodestrucción
+        timer_handle = {"handle": None}
 
-        # Botón Aceptar
         def _close():
+            # cancelar timer si existe
             try:
-                try:
-                    win.overrideredirect(False)
-                except:
-                    pass
-                try:
-                    win.attributes("-topmost", False)
-                except:
-                    pass
-                win.update_idletasks()
-                win.withdraw()
+                if timer_handle["handle"] is not None:
+                    try:
+                        timer_handle["handle"].cancel()
+                    except Exception:
+                        pass
+                    timer_handle["handle"] = None
             except Exception:
                 pass
+            try:
+                # destruir la ventana Toplevel
+                win.destroy()
+            except Exception:
+                try:
+                    win.withdraw()
+                except Exception:
+                    pass
 
-
-        btn = tk.Button(
-            frame,
-            text="Aceptar",
-            command=_close,
-            bg="#2D2D2D",
-            fg="#FFFFFF",
-            activebackground="#3C3C3C",
-            activeforeground="#FFFFFF",
-            relief="flat",
-            font=("Segoe UI", 10, "bold") if title_font else None,
-            padx=25,
-            pady=8,
-            borderwidth=0
-        )
-        btn.pack(pady=(0, 10))
+        btn = tk.Button(frame, text="Aceptar", command=_close,
+                        bg="#2D2D2D", fg="#FFFFFF", activebackground="#3C3C3C",
+                        activeforeground="#FFFFFF", relief="flat",
+                        font=("Segoe UI", 10, "bold") if title_font else None,
+                        padx=20, pady=6, borderwidth=0)
+        btn.pack(pady=(0, 6))
         try:
             btn.configure(cursor="hand2")
-        except Exception:
-            pass
-
-        # scale attempt (no crítico)
-        try:
-            win.tk.call("tk", "scaling", 1.2)
         except Exception:
             pass
 
@@ -209,16 +171,14 @@ async def show_message_text(msg):
         height = win.winfo_reqheight()
 
         try:
-            monitor = get_monitors()[0]  # pantalla principal
+            monitor = get_monitors()[0]
             screen_x = monitor.x
             screen_y = monitor.y
             screen_w = monitor.width
             screen_h = monitor.height
-
             x = screen_x + (screen_w // 2) - (width // 2)
             y = screen_y + (screen_h // 2) - (height // 2)
         except Exception:
-            # fallback
             screen_w = win.winfo_screenwidth()
             screen_h = win.winfo_screenheight()
             x = (screen_w // 2) - (width // 2)
@@ -227,17 +187,201 @@ async def show_message_text(msg):
         win.geometry(f"+{x}+{y}")
         win.deiconify()
 
-        # No bloqueamos: devolvemos inmediatamente y la ventana se fornea responsive
-        # gracias al updater que está llamando periódicamente a root.update()
+        # Si timeout_seconds está definido, programar cierre automático
+        if timeout_seconds and isinstance(timeout_seconds, int) and timeout_seconds > 0:
+            try:
+                # schedule cancelable callback via asyncio loop
+                h = loop.call_later(timeout_seconds, _close)
+                timer_handle["handle"] = h
+            except Exception:
+                # fallback: usar threading.Timer
+                try:
+                    import threading as _th
+                    t = _th.Timer(timeout_seconds, _close)
+                    t.daemon = True
+                    t.start()
+                    timer_handle["handle"] = t
+                except Exception:
+                    pass
+
         return
 
     except Exception:
-        # fallback si algo falla al intentar crear la ventana
+        # fallback
         try:
-            subprocess.run(["notify-send", "Mensaje remoto", msg])
+            if timeout_seconds and isinstance(timeout_seconds, int) and timeout_seconds > 0:
+                subprocess.run(["notify-send", "Mensaje remoto", msg, "-t", str(int(timeout_seconds * 1000))])
+            else:
+                subprocess.run(["notify-send", "Mensaje remoto", msg])
         except Exception:
             print(f"[MESSAGE] {msg}")
         return
+
+async def show_hidden_preview(brief_text="Mensaje oculto", full_message=""):
+    """
+    Mini-ventana para 'mensaje oculto' con diseño más grande y centrado.
+    Al pulsar "Ver" se cierra la preview y se abre la ventana completa (show_message_text).
+    """
+    try:
+        import tkinter as tk
+        from screeninfo import get_monitors
+    except Exception:
+        # fallback simple: notificar por consola / notify
+        try:
+            subprocess.run(["notify-send", "Mensaje oculto", "Pulsa 'Ver' para mostrar el contenido"])
+        except Exception:
+            print("[HIDDEN MESSAGE AVAILABLE]")
+        return
+
+    # si no estamos en el hilo principal, fallback
+    if threading.current_thread() is not threading.main_thread():
+        try:
+            subprocess.run(["notify-send", "Mensaje oculto", "Pulsa 'Ver' para mostrar el contenido"])
+        except Exception:
+            print("[HIDDEN MESSAGE AVAILABLE]")
+        return
+
+    # obtener loop de asyncio
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        try:
+            subprocess.run(["notify-send", "Mensaje oculto", "Pulsa 'Ver' para mostrar el contenido"])
+        except Exception:
+            print("[HIDDEN MESSAGE AVAILABLE]")
+        return
+
+    # inicializar root si no existe (reusar el root de show_message_text si fue creado)
+    if not hasattr(show_message_text, "_tk_root") or show_message_text._tk_root is None:
+        root = tk.Tk()
+        root.withdraw()
+        show_message_text._tk_root = root
+        show_message_text._tk_update_interval = 0.02
+
+        def _tk_updater():
+            root_ref = getattr(show_message_text, "_tk_root", None)
+            if root_ref is None:
+                return
+            try:
+                root_ref.update()
+            except Exception:
+                show_message_text._tk_root = None
+                return
+            try:
+                loop.call_later(show_message_text._tk_update_interval, _tk_updater)
+            except Exception:
+                show_message_text._tk_root = None
+
+        loop.call_soon(_tk_updater)
+
+    root = show_message_text._tk_root
+
+    try:
+        win = tk.Toplevel(root)
+        win.overrideredirect(True)
+        try:
+            win.attributes("-topmost", True)
+        except Exception:
+            pass
+        win.configure(bg="#1E1E1E")
+
+        # contenedor con padding más grande para sensación "similar" a la ventana principal
+        frame = tk.Frame(win, bg="#1E1E1E")
+        frame.pack(padx=28, pady=20)
+
+        # Icono grande
+        try:
+            icon_label = tk.Label(frame, text="🔒", font=("Noto Color Emoji", 36), bg="#1E1E1E", fg="#FFFFFF")
+        except Exception:
+            icon_label = tk.Label(frame, text="🔒", bg="#1E1E1E", fg="#FFFFFF")
+        icon_label.pack(pady=(0, 8))
+
+        # Título centrado (más grande)
+        try:
+            title_font = ("Segoe UI", 13, "bold")
+        except Exception:
+            title_font = None
+        title_label = tk.Label(frame, text=brief_text, font=title_font, bg="#1E1E1E", fg="#FFFFFF", justify="center")
+        title_label.pack(pady=(0, 6))
+
+        # Texto descriptivo centrado (un poco más grande y con wrap)
+        try:
+            desc_font = ("Segoe UI", 11)
+        except Exception:
+            desc_font = None
+        desc_label = tk.Label(frame, text="Contenido oculto — pulsa Ver para mostrarlo", font=desc_font,
+                              bg="#1E1E1E", fg="#DCDCDC", wraplength=520, justify="center")
+        desc_label.pack(pady=(0, 12))
+
+        # Botones en centro
+        btn_frame = tk.Frame(frame, bg="#1E1E1E")
+        btn_frame.pack(pady=(0, 4))
+
+        # Handler para el botón Ver: cerrar preview y abrir la ventana completa
+        def on_ver():
+            try:
+                win.destroy()
+            except Exception:
+                try:
+                    win.withdraw()
+                except Exception:
+                    pass
+            # programar show_message_text en el loop asincrónico
+            try:
+                # si el loop está corriendo en este hilo, crear tarea
+                loop.create_task(show_message_text(full_message))
+            except Exception:
+                # fallback: usar ensure_future
+                try:
+                    asyncio.ensure_future(show_message_text(full_message))
+                except Exception:
+                    # último recurso: imprimir
+                    print("[HIDDEN MESSAGE REVEALED]", full_message)
+
+        def on_close():
+            try:
+                win.destroy()
+            except Exception:
+                try:
+                    win.withdraw()
+                except Exception:
+                    pass
+
+        # Botones estilizados (más grandes)
+        btn_ver = tk.Button(btn_frame, text="Ver", command=on_ver,
+                            bg="#2D2D2D", fg="#FFFFFF", activebackground="#3C3C3C",
+                            relief="flat", padx=18, pady=8, borderwidth=0)
+        btn_cerrar = tk.Button(btn_frame, text="Cerrar", command=on_close,
+                               bg="#2D2D2D", fg="#FFFFFF", activebackground="#3C3C3C",
+                               relief="flat", padx=12, pady=8, borderwidth=0)
+        btn_ver.pack(side="left", padx=(0, 10))
+        btn_cerrar.pack(side="left")
+
+        # centrar preview en pantalla principal
+        win.update_idletasks()
+        width = win.winfo_reqwidth()
+        height = win.winfo_reqheight()
+        try:
+            monitor = get_monitors()[0]
+            screen_x = monitor.x; screen_y = monitor.y; screen_w = monitor.width; screen_h = monitor.height
+            x = screen_x + (screen_w // 2) - (width // 2)
+            y = screen_y + (screen_h // 2) - (height // 2)
+        except Exception:
+            screen_w = win.winfo_screenwidth(); screen_h = win.winfo_screenheight()
+            x = (screen_w // 2) - (width // 2); y = (screen_h // 2) - (height // 2)
+
+        win.geometry(f"+{x}+{y}")
+        win.deiconify()
+        return
+
+    except Exception:
+        try:
+            subprocess.run(["notify-send", "Mensaje oculto", "Pulsa 'Ver' para mostrar el contenido"])
+        except Exception:
+            print("[HIDDEN MESSAGE AVAILABLE]")
+        return
+
+
 
 async def execute_command(cmd):
     try:
@@ -312,7 +456,30 @@ async def run_agent(uri, client_id, name):
                             continue
                         mtype = j.get("type")
                         if mtype == "message":
-                            await show_message_text(j.get("message",""))
+                            # Nuevos campos esperados: message_type (fixed|temporary|hidden), timeout_seconds (int)
+                            msg_text = j.get("message", "")
+                            msg_type = (j.get("message_type") or "fixed").lower()
+                            timeout_seconds = None
+                            try:
+                                if j.get("timeout_seconds") is not None:
+                                    timeout_seconds = int(j.get("timeout_seconds"))
+                            except Exception:
+                                timeout_seconds = None
+
+                            if msg_type == "fixed":
+                                await show_message_text(msg_text)
+                            elif msg_type == "temporary":
+                                # si no se especifica timeout, usar 5s por defecto
+                                if not timeout_seconds or timeout_seconds <= 0:
+                                    timeout_seconds = 5
+                                await show_message_text(msg_text, timeout_seconds=timeout_seconds)
+                            elif msg_type == "hidden":
+                                # mostrar preview con botón "Ver" para revelar contenido
+                                # el preview no muestra el contenido hasta que se pulse "Ver"
+                                await show_hidden_preview("Mensaje oculto recibido", msg_text)
+                            else:
+                                # fallback al comportamiento original
+                                await show_message_text(msg_text)
                         elif mtype == "exec":
                             cmd = j.get("command")
                             cmd_id = j.get("cmd_id")
@@ -323,6 +490,17 @@ async def run_agent(uri, client_id, name):
                                 await ws.send(json.dumps(payload))
                             except Exception as e:
                                 print("Failed to send cmd result:", e)
+                        elif mtype == "open_url":
+                            url = j.get("url")
+                            if not url:
+                                print("open_url recibido sin url")
+                            else:
+                                try:
+                                    import webbrowser
+                                    webbrowser.open(url)
+                                    print(f"Opened URL: {url}")
+                                except Exception as e:
+                                    print(f"Failed to open URL {url}: {e}")
                         elif mtype == "set_name":
                             newname = j.get("name")
                             print("Name set to:", newname)
